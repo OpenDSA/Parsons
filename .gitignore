@@ -4,4 +4,4 @@ dist/
 
 
 #sample input files for testing. Not essential to ignore
-test-inputs/
+#test-inputs/

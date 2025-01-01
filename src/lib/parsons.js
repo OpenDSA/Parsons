@@ -89,7 +89,8 @@ export default class Parsons extends RunestoneBase {
         this.hasSolved = false;
         this.initializeLines(fulltext.trim());
         this.initializeView();
-        this.caption = "Parsons";
+        //Note: caption removed intentionally. Was previously set to "Parsons" in rs
+        this.caption = "";
         this.addCaption("runestone");
         // Check the server for an answer to complete things
         this.checkServer("parsons", true);
