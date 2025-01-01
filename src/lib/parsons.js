@@ -60,7 +60,6 @@ export default class Parsons extends RunestoneBase {
         this.origElem = $(orig).find("pre.parsonsblocks")[0];
         // Find the question text and store it in .question
         this.question = $(orig).find(`.parsons_question`)[0];
-        console.log($(orig).find('pre.parsonsblocks')[0])
         this.useRunestoneServices = opts.useRunestoneServices;
         this.divid = opts.orig.id;
         // Set the storageId (key for storing data)
@@ -2604,8 +2603,13 @@ Parsons.counter = 0;
 
 $(document).ready(function () {
 
+    $("[data-component=parsons]").each(function (index) {
+        new Parsons({orig:$(this),useRunestoneServices:false})
+    })
+
     var rstProblem = ""
     $("#submit-btn").click(function(event){
+        //todo add a checker to prevernt submitting when a file has not been selected
         var input = document.getElementById("myFile")
         var inputFile = input.files[0]
         const reader = new FileReader()
@@ -2623,7 +2627,7 @@ $(document).ready(function () {
                 "class": "parsons_question parsons-text"
             });
 
-            const $questionText = $("<p>").text("The instructions for the exercise comes here");
+            const $questionText = $("<p>").text("Exercise from "+input.files[0].name + " loaded successfully");
 
             const $problemDiv = $("<pre>",{
                 "data-question_label":"1.1.1",
@@ -2631,18 +2635,28 @@ $(document).ready(function () {
                 "style": "visibility: hidden;"
             })
 
+            const $viewSource = $("<a>",{
+                "class":"view-source"
+            }).text("View source")
+
             $questionDiv.append($questionText)
 
             //the problem definition read from the rst file is injected here
             $problemDiv.text(rstProblem)
 
             $parsonsShell.append($questionDiv)
+            // $parsonsShell.append($viewSource)
             $parsonsShell.append($problemDiv)
 
 
             $("#display-area").append($parsonsShell)
+
+            //clearing input field
+            input.value = null
+
         }
         reader.readAsText(inputFile)
+
 
 
     })
@@ -2650,7 +2664,25 @@ $(document).ready(function () {
     $("#compile-btn").click(function (event) {
 
         $("[data-component=parsons]").each(function (index) {
-            new Parsons({orig:$(this),useRunestoneServices:false})
+            try{
+                new Parsons({orig:$(this),useRunestoneServices:false})
+            }catch (e) {
+
+            }
         })
     });
+
+    $(".view-source").click(function(event){
+         if ($(this).parent().find("pre").css("visibility") === "visible"){
+            $(this).text("View source")
+            $(this).parent().find("pre").attr("style", "visibility: hidden;")
+        }else{
+            $(this).text("Hide source")
+            $(this).parent().find("pre").attr("style", "visibility: visible;")
+        }
+
+        event.preventDefault();
+
+
+    })
 });

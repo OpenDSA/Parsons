@@ -43,32 +43,36 @@
 
 <p>This is a playground for constructing parsons problems on the fly without having to build books.</p>
 <p>We currently support Runestone's RST and PreTeXt formats.</p>
+<p>Upload an RST file and click on Load then Render </p>
 
-<label for="myFile">Select a file:</label>
-<br>
-<input type="file" id="myFile" name="myFile" accept=".rst">
-
-<button id="submit-btn">Submit File</button>
-<button id="compile-btn">Compile</button>
 
 <div id="display-area">
 
+<h3> For Example </h3>
 <div data-component="parsons" id="morning" class="parsons">
     <div class="parsons_question parsons-text">
         <p>Put the blocks in order to describe a morning routine.</p>
 
     </div>
+<!--    <a class="view-source">View source</a>-->
     <pre class="parsonsblocks" data-question_label="1.1.1" style="visibility: hidden;">
         get up
- ---
-eat breakfast
- ---
-brush your teeth
-        </pre>
+        ---
+        eat breakfast
+         ---
+        brush your teeth
+    </pre>
 
 </div>
 
 </div>
+
+<label for="myFile">Select an RST file to render:</label>
+<br>
+<input type="file" id="myFile" name="myFile" accept=".rst">
+
+<button id="submit-btn">Load Exercise</button>
+<button id="compile-btn">Render All New Exercises</button>
 
 <script src="main.js">
 </script>
