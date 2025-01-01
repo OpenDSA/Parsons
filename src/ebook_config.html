@@ -1,0 +1,60 @@
+
+<script type="text/javascript">
+  if(typeof eBookConfig === "undefined") {
+      eBookConfig = {};
+  }
+  eBookConfig.host = '';
+  eBookConfig.app = eBookConfig.host+'/runestone';
+  eBookConfig.ajaxURL = eBookConfig.app+'/ajax/';
+  eBookConfig.course = "{{course.course_name}}";
+  eBookConfig.logLevel = 10;
+  eBookConfig.loginRequired = true;
+  eBookConfig.python3 = true;
+  {% if user %}
+  eBookConfig.username = "{{user.username}}"
+  eBookConfig.email = "{{user.email}}"
+    {% if is_instructor: %}
+        eBookConfig.isInstructor = true;
+    {% endif %}
+  eBookConfig.isLoggedIn = true;
+  {% else %}
+  eBookConfig.isLoggedIn = false;
+  {% endif %}
+  eBookConfig.useRunestoneServices = true;
+  eBookConfig.basecourse = "{{course.base_course}}";
+  eBookConfig.gradeRecordingUrl = `${eBookConfig.app}/assignments/record_grade`;
+  eBookConfig.new_server_prefix = "/ns";
+  eBookConfig.websocketUrl = "{{settings.websocket_url}}"
+  eBookConfig.enableDebug = true ? "{{settings.debug}}" == "True" : false;
+</script>
+<div data-component="parsons" id="morning" class="parsons">
+    <div class="parsons_question parsons-text">
+        <p>Put the blocks in order to describe a morning routine.</p>
+
+    </div>
+    <pre class="parsonsblocks" data-question_label="1.1.1" style="visibility: hidden;">
+        get up
+---
+eat breakfast
+---
+brush your teeth
+        </pre>
+</div>
+
+
+// $(document).on("runestone:login-complete", function () {
+//     $("[data-component=parsons]").each(function (index) {
+//         if ($(this).closest("[data-component=timedAssessment]").length == 0) {
+//             try {
+//                 window.componentMap[this.id] = new Parsons({
+//                     orig: this,
+//                     useRunestoneServices: eBookConfig.useRunestoneServices,
+//                 });
+//             } catch (err) {
+//                 console.log(`Error rendering Parsons Problem ${this.id}
+//                              Details: ${err}`);
+//                 console.log(err.stack);
+//             }
+//         }
+//     });
+// });
