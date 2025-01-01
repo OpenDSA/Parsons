@@ -3,27 +3,79 @@
 <head>
     <meta charset="utf-8">
     <title>Demo</title>
+
+    <link rel="stylesheet" type="text/css" href="../src/css/parsons.css" />
+
+    <!--eBookConfig Setup-->
+    <script type="text/javascript">
+        if(typeof eBookConfig === "undefined") {
+            eBookConfig = {};
+        }
+        eBookConfig.host = '';
+        eBookConfig.app = eBookConfig.host+'/runestone';
+        eBookConfig.ajaxURL = eBookConfig.app+'/ajax/';
+        eBookConfig.course = "{{course.course_name}}";
+        eBookConfig.logLevel = 10;
+        eBookConfig.username = "{{user.username}}"
+        eBookConfig.email = "{{user.email}}"
+        eBookConfig.isInstructor = true;
+        eBookConfig.isLoggedIn = true;
+        eBookConfig.useRunestoneServices = false;
+        eBookConfig.gradeRecordingUrl = `${eBookConfig.app}/assignments/record_grade`;
+        eBookConfig.new_server_prefix = "/ns";
+        eBookConfig.websocketUrl = "{{settings.websocket_url}}"
+        eBookConfig.enableDebug = true ? "{{settings.debug}}" == "True" : false;
+        eBookConfig.served_by = "TBD"
+    </script>
+    <script src="../src/lib/jquery-3.7.1.min.js"></script>
+    <script src="../src/lib/jquery_i18n/jquery.i18n.js"></script>
+    <script src="../src/lib/jquery_i18n/jquery.i18n.emitter.js"></script>
+    <script src="../src/lib/jquery_i18n/jquery.i18n.emitter.bidi.js"></script>
+    <script src="../src/lib/jquery_i18n/jquery.i18n.fallbacks.js"></script>
+    <script src="../src/lib/jquery_i18n/jquery.i18n.language.js"></script>
+    <script src="../src/lib/jquery_i18n/jquery.i18n.messagestore.js"></script>
+    <script src="../src/lib/jquery_i18n/jquery.i18n.parser.js"></script>
+
+
 </head>
 <body>
-<a href="">jQuery</a>
-<button id="compile-btn">Compile</button>
+<h2>Parsons Playground</h2>
+
+<p>This is a playground for constructing parsons problems on the fly without having to build books.</p>
+<p>We currently support Runestone's RST and PreTeXt formats.</p>
+<p>Upload an RST file and click on Load then Render </p>
 
 
+<div id="display-area">
 
-<!--<div id="parsons-display" style="border: solid 2px blue; width: 700px; height: 700px;">-->
-    
-    
+    <h3> For Example </h3>
+    <div data-component="parsons" id="morning" class="parsons">
+        <div class="parsons_question parsons-text">
+            <p>Put the blocks in order to describe a morning routine.</p>
 
-<!--</div>-->
+        </div>
+        <!--    <a class="view-source">View source</a>-->
+        <pre class="parsonsblocks" data-question_label="1.1.1" style="visibility: hidden;">
+        get up
+        ---
+        eat breakfast
+         ---
+        brush your teeth
+    </pre>
 
+    </div>
 
-<!--<iframe src="./index.html" frameborder="0">-->
+</div>
 
-<!--</iframe>-->
+<label for="myFile">Select an RST file to render:</label>
+<br>
+<input type="file" id="myFile" name="myFile" accept=".rst">
 
+<button id="submit-btn">Load Exercise</button>
+<button id="compile-btn">Render All New Exercises</button>
 
-<!--<script src="jquery.js"></script>-->
-<!--<script src="lib/parsons.js">-->
-<!--</script>-->
+<script src="../dist/main.js">
+</script>
+
 </body>
 </html>
