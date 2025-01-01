@@ -410,7 +410,9 @@ export default class RunestoneBase {
     // This method assumes that ``this.componentDiv`` refers to the ``div`` containing the component, and that this component's ID is set.
     indicate_component_ready() {
         // Add a class to indicate the component is now ready.
-        this.containerDiv.classList.add("runestone-component-ready");
+        // console.log(this.containerDiv[0])
+        // console.log(this.containerDiv[0].classList)
+        this.containerDiv[0].classList.add("runestone-component-ready");
         // Resolve the ``this.component_ready_promise``.
         this._component_ready_resolve_fn();
     }
@@ -504,8 +506,8 @@ export default class RunestoneBase {
                 $(capDiv).addClass(`${elType}_caption_text`);
             }
             this.capDiv = capDiv;
-            //this.outerDiv.parentNode.insertBefore(capDiv, this.outerDiv.nextSibling);
-            this.containerDiv.appendChild(capDiv);
+            // this.outerDiv.parentNode.insertBefore(capDiv, this.outerDiv.nextSibling);
+            this.containerDiv[0].appendChild(capDiv);
         }
     }
 

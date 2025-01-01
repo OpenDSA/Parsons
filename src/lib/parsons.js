@@ -55,12 +55,12 @@ export default class Parsons extends RunestoneBase {
     constructor(opts) {
         super(opts);
         var orig = opts.orig; // entire <pre> element that will be replaced by new HTML
+        // var orig = opts.orig; // entire <pre> element that will be replaced by new HTML
         this.containerDiv = orig;
         this.origElem = $(orig).find("pre.parsonsblocks")[0];
         // Find the question text and store it in .question
         this.question = $(orig).find(`.parsons_question`)[0];
         console.log($(orig).find('pre.parsonsblocks')[0])
-        console.log(this.question)
         this.useRunestoneServices = opts.useRunestoneServices;
         this.divid = opts.orig.id;
         // Set the storageId (key for storing data)
@@ -2601,37 +2601,56 @@ export default class Parsons extends RunestoneBase {
 Parsons.counter = 0;
 
 
-const pre =
-    `
-    <div data-component="parsons" id="morning" class="parsons">
-    <div class="parsons_question parsons-text">
-        <p>Put the blocks in order to describe a morning routine.</p>
-
-    </div>
-    <pre class="parsonsblocks" data-question_label="1.1.1" style="visibility: hidden;">
-        get up
----
-eat breakfast
----
-brush your teeth
-        </pre>
-</div>
-`
-
 
 $(document).ready(function () {
+
+    var rstProblem = ""
+    $("#submit-btn").click(function(event){
+        var input = document.getElementById("myFile")
+        var inputFile = input.files[0]
+        const reader = new FileReader()
+        reader.onload = function () {
+            rstProblem = reader.result
+
+            //This is where the pretext div is created for the parsons problem
+            const $parsonsShell = $("<div>", {
+                "data-component": "parsons",
+                "id": "morning",
+                "class": "parsons"
+            });
+
+            const $questionDiv = $("<div>", {
+                "class": "parsons_question parsons-text"
+            });
+
+            const $questionText = $("<p>").text("The instructions for the exercise comes here");
+
+            const $problemDiv = $("<pre>",{
+                "data-question_label":"1.1.1",
+                "class":"parsonsblocks",
+                "style": "visibility: hidden;"
+            })
+
+            $questionDiv.append($questionText)
+
+            //the problem definition read from the rst file is injected here
+            $problemDiv.text(rstProblem)
+
+            $parsonsShell.append($questionDiv)
+            $parsonsShell.append($problemDiv)
+
+
+            $("#display-area").append($parsonsShell)
+        }
+        reader.readAsText(inputFile)
+
+
+    })
 
     $("#compile-btn").click(function (event) {
 
         $("[data-component=parsons]").each(function (index) {
-            console.log($(this).find("pre.parsonsblocks"))
-           $(this).replaceWith(new Parsons({
-               orig : $(this),
-               useRunestoneServices: false
-           }))
-
+            new Parsons({orig:$(this),useRunestoneServices:false})
         })
-
     });
-
 });
