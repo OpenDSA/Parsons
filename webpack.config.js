@@ -40,13 +40,8 @@ module.exports = {
             },
         ]
     }
-    // ,
-    // plugins:[ new webpack.ProvidePlugin({
-    //     $: "jquery",
-    //     jQuery: "jquery"
-    // }),
-    //     new webpack.ProvidePlugin({
-    //
-    //     })
-    // ]
+    ,
+    plugins:[ new webpack.ProvidePlugin({
+        restructured:"restructured"
+    })]
 };

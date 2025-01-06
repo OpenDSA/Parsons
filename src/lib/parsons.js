@@ -31,6 +31,7 @@ import LineBasedGrader from "./lineGrader.js";
 import DAGGrader from "./dagGrader.js";
 import ParsonsLine from "./parsonsLine.js";
 import ParsonsBlock from "./parsonsBlock.js";
+import {loadFile, renderAll} from "./helpers";
 
 /* =====================================================================
 ==== Parsons Object ====================================================
@@ -2601,67 +2602,14 @@ export default class Parsons extends RunestoneBase {
 Parsons.counter = 0;
 
 
-
 $(document).ready(function () {
 
-    $("[data-component=parsons]").each(function (index) {
-        new Parsons({orig:$(this),useRunestoneServices:false})
-    })
+    //this is called to render the first example on load
+    // renderAll()
 
-    var rstProblem = ""
-    $("#submit-btn").click(function(event){
-        //todo add a checker to prevernt submitting when a file has not been selected
-        var input = document.getElementById("myFile")
-        var inputFile = input.files[0]
-        const reader = new FileReader()
-        reader.onload = function () {
-            rstProblem = reader.result
+    loadFile()
 
-            //This is where the pretext div is created for the parsons problem
-            const $parsonsShell = $("<div>", {
-                "data-component": "parsons",
-                "id": "morning",
-                "class": "parsons"
-            });
-
-            const $questionDiv = $("<div>", {
-                "class": "parsons_question parsons-text"
-            });
-
-            const $questionText = $("<p>").text("Exercise from "+input.files[0].name + " loaded successfully");
-
-            const $problemDiv = $("<pre>",{
-                "data-question_label":"1.1.1",
-                "class":"parsonsblocks",
-                "style": "visibility: hidden;"
-            })
-
-            const $viewSource = $("<a>",{
-                "class":"view-source"
-            }).text("View source")
-
-            $questionDiv.append($questionText)
-
-            //the problem definition read from the rst file is injected here
-            $problemDiv.text(rstProblem)
-
-            $parsonsShell.append($questionDiv)
-            // $parsonsShell.append($viewSource)
-            $parsonsShell.append($problemDiv)
-
-
-            $("#display-area").append($parsonsShell)
-
-            //clearing input field
-            input.value = null
-
-        }
-        reader.readAsText(inputFile)
-
-
-
-    })
-
+    //render all new exercises
     $("#compile-btn").click(function (event) {
 
         $("[data-component=parsons]").each(function (index) {
@@ -2673,17 +2621,17 @@ $(document).ready(function () {
         })
     });
 
-    $(".view-source").click(function(event){
-         if ($(this).parent().find("pre").css("visibility") === "visible"){
-            $(this).text("View source")
-            $(this).parent().find("pre").attr("style", "visibility: hidden;")
-        }else{
-            $(this).text("Hide source")
-            $(this).parent().find("pre").attr("style", "visibility: visible;")
-        }
-
-        event.preventDefault();
-
-
-    })
+    // $(".view-source").click(function(event){
+    //      if ($(this).parent().find("pre").css("visibility") === "visible"){
+    //         $(this).text("View source")
+    //         $(this).parent().find("pre").attr("style", "visibility: hidden;")
+    //     }else{
+    //         $(this).text("Hide source")
+    //         $(this).parent().find("pre").attr("style", "visibility: visible;")
+    //     }
+    //
+    //     event.preventDefault();
+    //
+    //
+    // })
 });
