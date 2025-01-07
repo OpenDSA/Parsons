@@ -1044,6 +1044,7 @@ export default class Parsons extends RunestoneBase {
         for (i = 0; i < this.lines.length; i++) {
             line = this.lines[i];
             lines.push(line);
+            console.log(lines)
             if (!line.groupWithNext) {
                 unorderedBlocks.push(new ParsonsBlock(this, lines));
                 lines = [];

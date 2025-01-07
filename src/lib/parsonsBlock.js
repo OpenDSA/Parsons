@@ -24,6 +24,7 @@ export default class ParsonsBlock {
         view.id = problem.counterId + "-block-" + problem.blockIndex;
         problem.blockIndex += 1;
         $(view).addClass("block");
+        console.log(lines)
         var sharedIndent = lines[0].indent;
         for (let i = 1; i < lines.length; i++) {
             sharedIndent = Math.min(sharedIndent, lines[i].indent);

@@ -14,10 +14,10 @@
         eBookConfig.host = '';
         eBookConfig.app = eBookConfig.host+'/runestone';
         eBookConfig.ajaxURL = eBookConfig.app+'/ajax/';
-        eBookConfig.course = "{{course.course_name}}";
+        eBookConfig.course = "";
         eBookConfig.logLevel = 10;
-        eBookConfig.username = "{{user.username}}"
-        eBookConfig.email = "{{user.email}}"
+        eBookConfig.username = ""
+        eBookConfig.email = ""
         eBookConfig.isInstructor = true;
         eBookConfig.isLoggedIn = false;
         eBookConfig.useRunestoneServices = false;
@@ -36,7 +36,81 @@
     <script src="../src/lib/jquery_i18n/jquery.i18n.messagestore.js"></script>
     <script src="../src/lib/jquery_i18n/jquery.i18n.parser.js"></script>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS_CHTML-full"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+
+    <script>
+        var runestoneMathReady = new Promise((resolve) => window.rsMathReady = resolve);
+        window.MathJax = {
+            "tex": {
+                "inlineMath": [
+                    [
+                        "\\(",
+                        "\\)"
+                    ]
+                ],
+                "tags": "none",
+                "tagSide": "right",
+                "tagIndent": ".8em",
+                "packages": {
+                    "[+]": [
+                        "base",
+                        "extpfeil",
+                        "ams",
+                        "amscd",
+                        "color",
+                        "newcommand",
+                        "knowl"
+                    ]
+                }
+            },
+            "options": {
+                "ignoreHtmlClass": "tex2jax_ignore|ignore-math",
+                "processHtmlClass": "process-math",
+                "renderActions": {
+                    "findScript": [
+                        10,
+                        function (doc) {
+                            document.querySelectorAll('script[type^="math/tex"]').forEach(function(node) {
+                                var display = !!node.type.match(/; *mode=display/);
+                                var math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+                                var text = document.createTextNode('');
+                                node.parentNode.replaceChild(text, node);
+                                math.start = {node: text, delim: '', n: 0};
+                                math.end = {node: text, delim: '', n: 0};
+                                doc.math.push(math);
+                            });
+                        },
+                        ""
+                    ]
+                }
+            },
+            "chtml": {
+                "scale": 0.98,
+                "mtextInheritFont": true
+            },
+            "loader": {
+                "load": [
+                    "input/asciimath",
+                    "[tex]/extpfeil",
+                    "[tex]/amscd",
+                    "[tex]/color",
+                    "[tex]/newcommand",
+                ],
+                "paths": {
+                    "pretext": "_static/pretext/js/lib"
+                }
+            },
+            "startup": {
+                pageReady() {
+                    return MathJax.startup.defaultPageReady().then(function () {
+                            console.log("in ready function");
+                            rsMathReady();
+                        }
+                    )}
+            }
+        };
+    </script>
 
 
 </head>
@@ -58,6 +132,18 @@
 <p>Some examples can be found in the test-inputs directory
 </p>
 <div id="display-area">
+    <div data-component="parsons" id="pa-ex1" class="parsons" >
+        <div class="parsons_question parsons-text" >
+            <p>Construct a block of code that correctly implements
+                the <strong>accumulator</strong> pattern.</p>
+
+        </div>
+        <pre  class="parsonsblocks" data-question_label="2.3.1"          style="visibility: hidden;">
+        x = 0
+for i in range(10):
+    x = x + 1
+        </pre>
+    </div>
 </div>
 
 

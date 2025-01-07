@@ -103,21 +103,27 @@ export function loadFile() {
                             line.value.replace(":grader: ",""))
                     }
 
+                    if (line.value.includes(":maxdist:")){
+                        $problemDiv.attr("data-maxdist",
+                            line.value.replace(":maxdist: ",""))
+                    }
+
                 }else if (reachedProblemDefinition){
                     // problemBlocks = problemBlocks + line.value + " "
                     if (line.value === "====="){
-                        problemBlocks = problemBlocks + "---" + " "
+                        problemBlocks = problemBlocks.concat("\n---")
                     }else {
-                        problemBlocks = problemBlocks + line.value + " "
+                        problemBlocks = problemBlocks.concat("\n", line.value)
                     }
                     // $problemDiv.append(line.value)
                 }else if (reachedProblemInstruction){
-                    problemInstructions = problemInstructions + line.value
+                    problemInstructions = problemInstructions.concat("\n", line.value)
                 }
 
             }
 
             console.log(problemInstructions)
+            console.log(problemBlocks)
             if (problemInstructions.length > 0)
                 $questionDiv.append($($.parseHTML(problemInstructions)))
             else
