@@ -25,9 +25,6 @@ export function loadFile() {
             const isParsonsDirective = parsed.children[0].directive === "parsonsprob"
             const parsonsShellId = parsed.children[0].children[0].value
 
-            console.log(rstProblem)
-            console.log(parsed)
-
             //This is where the pretext div is created for the parsons problem
 
             // if
@@ -50,9 +47,13 @@ export function loadFile() {
             })
 
             let index = 0
-            let hasReachedProblemDefinition = false
+            let reachedProblemDefinition = false
+            let reachedProblemInstruction = false
 
             let problemBlocks = " "
+            let problemInstructions = ""
+
+            console.log(parsed.children[0].children)
             for (const line of parsed.children[0].children){
                 //to skip the first line which has the directive's name
                 if (index === 0){
@@ -61,16 +62,20 @@ export function loadFile() {
                 }
                 index = index + 1
 
-
-                if(!hasReachedProblemDefinition) {
-
-                    if (line.value[0] !== ":" ){
-                        if (line.value === "-----"){
-                            hasReachedProblemDefinition = true
-                        }
+                if (line.value[0] !== ":" ){
+                    if (line.value === "-----"){
+                        reachedProblemDefinition = true
+                        reachedProblemInstruction = false
                         continue
                     }
+                    if (line.value === ".. raw:: html"){
+                        reachedProblemInstruction = true
+                        reachedProblemDefinition = false
+                        continue
+                    }
+                }
 
+                if(!reachedProblemDefinition && !reachedProblemInstruction) {
 
                     if (line.value.includes(":language:")) {
                         $problemDiv.attr("data-language",
@@ -97,8 +102,8 @@ export function loadFile() {
                         $problemDiv.attr("data-grader",
                             line.value.replace(":grader: ",""))
                     }
-                }else{
-                    console.log(line.value)
+
+                }else if (reachedProblemDefinition){
                     // problemBlocks = problemBlocks + line.value + " "
                     if (line.value === "====="){
                         problemBlocks = problemBlocks + "---" + " "
@@ -106,12 +111,17 @@ export function loadFile() {
                         problemBlocks = problemBlocks + line.value + " "
                     }
                     // $problemDiv.append(line.value)
+                }else if (reachedProblemInstruction){
+                    problemInstructions = problemInstructions + line.value
                 }
 
             }
-            console.log(problemBlocks)
 
-            $questionDiv.append($questionText)
+            console.log(problemInstructions)
+            if (problemInstructions.length > 0)
+                $questionDiv.append($($.parseHTML(problemInstructions)))
+            else
+                $questionDiv.append($questionText)
 
             //the problem definition read from the rst file is injected here
             $problemDiv.text(problemBlocks)
