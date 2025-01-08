@@ -2,9 +2,15 @@ node_modules/
 .idea/
 dist/
 
-.DS_Store
-
-
-
 #sample input files for testing. Not essential to ignore
 #test-inputs/
+
+#Temp files
+*~
+modules.json
+modules.csv
+*.bak
+
+# For MAC users
+*.DS_Store
+
