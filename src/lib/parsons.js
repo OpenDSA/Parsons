@@ -704,7 +704,8 @@ export default class Parsons extends RunestoneBase {
     }
     // Return what is stored in local storage
     localData() {
-        var data = localStorage.getItem(this.storageId);
+        //This ternary was introduced to prevent persistence in playground environments
+        var data = eBookConfig.isPlaygroundEnv ? null :  localStorage.getItem(this.storageId);
         if (data !== null) {
             if (data.charAt(0) == "{") {
                 data = JSON.parse(data);
@@ -1337,6 +1338,7 @@ export default class Parsons extends RunestoneBase {
                 this.checkCount
             );
             this.setLocalStorage();
+
             // if not solved and not too short then check if should provide help
             if (!this.hasSolved && this.grade !== "incorrectTooShort") {
                 if (this.canHelp) {
