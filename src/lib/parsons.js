@@ -31,6 +31,7 @@ import LineBasedGrader from "./lineGrader.js";
 import DAGGrader from "./dagGrader.js";
 import ParsonsLine from "./parsonsLine.js";
 import ParsonsBlock from "./parsonsBlock.js";
+import {loadFile, renderAll} from "./helpers";
 
 /* =====================================================================
 ==== Parsons Object ====================================================
@@ -703,7 +704,8 @@ export default class Parsons extends RunestoneBase {
     }
     // Return what is stored in local storage
     localData() {
-        var data = localStorage.getItem(this.storageId);
+        //This ternary was introduced to prevent persistence in playground environments
+        var data = eBookConfig.isPlaygroundEnv ? null :  localStorage.getItem(this.storageId);
         if (data !== null) {
             if (data.charAt(0) == "{") {
                 data = JSON.parse(data);
@@ -1043,6 +1045,7 @@ export default class Parsons extends RunestoneBase {
         for (i = 0; i < this.lines.length; i++) {
             line = this.lines[i];
             lines.push(line);
+            console.log(lines)
             if (!line.groupWithNext) {
                 unorderedBlocks.push(new ParsonsBlock(this, lines));
                 lines = [];
@@ -1335,6 +1338,7 @@ export default class Parsons extends RunestoneBase {
                 this.checkCount
             );
             this.setLocalStorage();
+
             // if not solved and not too short then check if should provide help
             if (!this.hasSolved && this.grade !== "incorrectTooShort") {
                 if (this.canHelp) {
@@ -2601,67 +2605,14 @@ export default class Parsons extends RunestoneBase {
 Parsons.counter = 0;
 
 
-
 $(document).ready(function () {
 
-    $("[data-component=parsons]").each(function (index) {
-        new Parsons({orig:$(this),useRunestoneServices:false})
-    })
+    //this is called to render the first example on load
+    // renderAll()
 
-    var rstProblem = ""
-    $("#submit-btn").click(function(event){
-        //todo add a checker to prevernt submitting when a file has not been selected
-        var input = document.getElementById("myFile")
-        var inputFile = input.files[0]
-        const reader = new FileReader()
-        reader.onload = function () {
-            rstProblem = reader.result
+    loadFile()
 
-            //This is where the pretext div is created for the parsons problem
-            const $parsonsShell = $("<div>", {
-                "data-component": "parsons",
-                "id": "morning",
-                "class": "parsons"
-            });
-
-            const $questionDiv = $("<div>", {
-                "class": "parsons_question parsons-text"
-            });
-
-            const $questionText = $("<p>").text("Exercise from "+input.files[0].name + " loaded successfully");
-
-            const $problemDiv = $("<pre>",{
-                "data-question_label":"1.1.1",
-                "class":"parsonsblocks",
-                "style": "visibility: hidden;"
-            })
-
-            const $viewSource = $("<a>",{
-                "class":"view-source"
-            }).text("View source")
-
-            $questionDiv.append($questionText)
-
-            //the problem definition read from the rst file is injected here
-            $problemDiv.text(rstProblem)
-
-            $parsonsShell.append($questionDiv)
-            // $parsonsShell.append($viewSource)
-            $parsonsShell.append($problemDiv)
-
-
-            $("#display-area").append($parsonsShell)
-
-            //clearing input field
-            input.value = null
-
-        }
-        reader.readAsText(inputFile)
-
-
-
-    })
-
+    //render all new exercises
     $("#compile-btn").click(function (event) {
 
         $("[data-component=parsons]").each(function (index) {
@@ -2673,17 +2624,4 @@ $(document).ready(function () {
         })
     });
 
-    $(".view-source").click(function(event){
-         if ($(this).parent().find("pre").css("visibility") === "visible"){
-            $(this).text("View source")
-            $(this).parent().find("pre").attr("style", "visibility: hidden;")
-        }else{
-            $(this).text("Hide source")
-            $(this).parent().find("pre").attr("style", "visibility: visible;")
-        }
-
-        event.preventDefault();
-
-
-    })
 });
