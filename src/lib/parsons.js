@@ -2622,17 +2622,4 @@ $(document).ready(function () {
         })
     });
 
-    // $(".view-source").click(function(event){
-    //      if ($(this).parent().find("pre").css("visibility") === "visible"){
-    //         $(this).text("View source")
-    //         $(this).parent().find("pre").attr("style", "visibility: hidden;")
-    //     }else{
-    //         $(this).text("Hide source")
-    //         $(this).parent().find("pre").attr("style", "visibility: visible;")
-    //     }
-    //
-    //     event.preventDefault();
-    //
-    //
-    // })
 });

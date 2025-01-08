@@ -7,10 +7,6 @@ export function renderAll() {
     })
 }
 
-// function getAttributeValue(line,key){
-//     line.value.sp
-// }
-
 export function loadFile() {
     $("#submit-btn").click(function(event){
         //todo add a checker to prevernt submitting when a file has not been selected
@@ -22,12 +18,13 @@ export function loadFile() {
 
             const parsed = restructured.parse(rstProblem)
 
+            //todo Implement this check
             const isParsonsDirective = parsed.children[0].directive === "parsonsprob"
+
             const parsonsShellId = parsed.children[0].children[0].value
 
-            //This is where the pretext div is created for the parsons problem
+            console.log(parsed.children[0].children)
 
-            // if
             let $parsonsShell = $("<div>", {
                 "data-component": "parsons",
                 "id": parsonsShellId || "parsonsShell",
@@ -40,6 +37,8 @@ export function loadFile() {
 
             const $questionText = $("<p>").text("Exercise from "+input.files[0].name + " loaded successfully");
 
+            $questionDiv.append($questionText)
+
             let $problemDiv = $("<pre>",{
                 "data-question_label":"",
                 "class":"parsonsblocks",
@@ -47,13 +46,14 @@ export function loadFile() {
             })
 
             let index = 0
-            let reachedProblemDefinition = false
-            let reachedProblemInstruction = false
+            let inProblemBlockDefinition = false
+            let inProblemInstruction = false
 
             let problemBlocks = " "
             let problemInstructions = ""
 
-            console.log(parsed.children[0].children)
+            let isRawHTML = false
+
             for (const line of parsed.children[0].children){
                 //to skip the first line which has the directive's name
                 if (index === 0){
@@ -62,20 +62,15 @@ export function loadFile() {
                 }
                 index = index + 1
 
-                if (line.value[0] !== ":" ){
-                    if (line.value === "-----"){
-                        reachedProblemDefinition = true
-                        reachedProblemInstruction = false
-                        continue
+                //for handling the ".. parsonsprob" directive's options
+                if (line.value[0] === ":" ){
+                    if (line.value.includes(":question_label:")){
+                        $problemDiv.attr("data-question_label",
+                            line.value.replace(":question_label: "))
+                    }else{
+                        $problemDiv.attr("data-question_label",
+                            Math.floor(Math.random() * 1000) + 1)
                     }
-                    if (line.value === ".. raw:: html"){
-                        reachedProblemInstruction = true
-                        reachedProblemDefinition = false
-                        continue
-                    }
-                }
-
-                if(!reachedProblemDefinition && !reachedProblemInstruction) {
 
                     if (line.value.includes(":language:")) {
                         $problemDiv.attr("data-language",
@@ -107,30 +102,48 @@ export function loadFile() {
                         $problemDiv.attr("data-maxdist",
                             line.value.replace(":maxdist: ",""))
                     }
-
-                }else if (reachedProblemDefinition){
-                    // problemBlocks = problemBlocks + line.value + " "
-                    if (line.value === "====="){
-                        problemBlocks = problemBlocks.concat("\n---")
-                    }else {
-                        problemBlocks = problemBlocks.concat("\n", line.value)
+                }else{
+                    if (!inProblemInstruction && ! inProblemBlockDefinition){
+                        inProblemInstruction = true
                     }
-                    // $problemDiv.append(line.value)
-                }else if (reachedProblemInstruction){
-                    problemInstructions = problemInstructions.concat("\n", line.value)
+                    if (inProblemInstruction){
+                        if (line.value === "-----"){
+                            inProblemInstruction = false
+                            inProblemBlockDefinition = true
+                            continue
+                        }
+                        if (line.value === ".. raw:: html"){
+                            isRawHTML = true
+                            continue
+                        }
+
+                        problemInstructions = problemInstructions.concat(line.value, " ")
+                    }
+                    if (inProblemBlockDefinition){
+                        problemBlocks = problemBlocks === " "
+                            ? problemBlocks.concat(line.value)
+                            : problemBlocks.concat("\n",line.value)
+                    }
                 }
 
             }
 
-            console.log(problemInstructions)
             console.log(problemBlocks)
-            if (problemInstructions.length > 0)
-                $questionDiv.append($($.parseHTML(problemInstructions)))
-            else
-                $questionDiv.append($questionText)
+            console.log(problemInstructions)
+            if (isRawHTML) {
+                $questionDiv.empty().append($($.parseHTML(problemInstructions)))
+            }
+            else {
+                problemInstructions = problemInstructions.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                problemInstructions = problemInstructions.replace(/\*(.*?)\*/g, '<em>$1</em>');
+                problemInstructions = problemInstructions.replace(/<b>(.*?)<\/b>/g, '<strong>$1</strong>');
+                problemInstructions = problemInstructions.replace(/<i>(.*?)<\/i>/g, '<em>$1</em>');
+                $questionDiv.empty().append($("<p>").append($.parseHTML(problemInstructions)))
+            }
 
             //the problem definition read from the rst file is injected here
             $problemDiv.text(problemBlocks)
+            // $problemDiv.append(document.createTextNode(problemBlocks))
 
             $parsonsShell.append($questionDiv)
             // $parsonsShell.append($viewSource)
