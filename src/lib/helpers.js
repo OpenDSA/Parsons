@@ -120,6 +120,10 @@ export function loadFile() {
                         problemInstructions = problemInstructions.concat(line.value, " ")
                     }
                     if (inProblemBlockDefinition){
+                        if (line.value === "====="){
+                            problemBlocks = problemBlocks.concat("---")
+                            continue
+                        }
                         problemBlocks = problemBlocks === " "
                             ? problemBlocks.concat(line.value)
                             : problemBlocks.concat("\n",line.value)
