@@ -5,6 +5,7 @@
     <title>Demo</title>
 
     <link rel="stylesheet" type="text/css" href="../src/css/parsons.css" />
+    <link rel="stylesheet" type="text/css" href="../src/css/index.css">
 
     <!--eBookConfig Setup-->
     <script type="text/javascript">
@@ -122,52 +123,68 @@
             ,syntax: "css"			// syntax to be uses for highgliting
             ,start_highlight: false		// to display with highlight mode on start-up
             ,display: "later"
+            ,toolbar:"search, go_to_line, fullscreen, |, undo, redo, |, save, |, select_font,|, highlight, word_wrap, |, help"
+            ,save_callback: "saveFromEditor"
         });
+
+        //todo automatic re-rendering from editor to be implemented
+        function saveFromEditor(id,content){
+            // $("#"+id).empty().val(content)
+            const newParsed = restructured.parse(content)
+            injectHTML(newParsed)
+            setTimeout(function (){
+                renderAll()
+            },250)
+        }
+
     </script>
 
 
 </head>
 <body>
-<h2>Parsons Playground</h2>
+<header>
+    <h2>Parsons Playground</h2>
+    <a href="https://github.com/OpenDSA/Parsons" style="font-size: 1.2rem; padding-top: 1rem; padding-left: 1rem">Source</a>
+</header>
 
-<p>This is a playground for constructing parsons problems on the fly without having to build books.</p>
-<p>We currently support Runestone's RST and PreTeXt formats.</p>
-<p>Upload an RST file and click on Load then Render </p>
+<div id="intro">
+    <p>This is a playground for constructing parsons problems on the fly without having to build books.</p>
+    <p>We currently support Runestone's RST format for Parsons Problems.</p>
 
-<h3> Getting Started </h3>
+    <p>You may paste problem descriptions into the TextArea directly or upload .rst files for rendering</p>
 
-<label for="myFile">Select an RST file to render:</label>
-<br>
-<input type="file" id="myFile" name="myFile" accept=".rst">
+    <label for="myFile">Select an RST file to render:</label>
+    <br>
+    <input type="file" id="myFile" name="myFile" accept=".rst">
 
-<button id="submit-btn">Load Exercise</button>
-<button id="compile-btn">Render All New Exercises</button>
-<p id="input-file-error" style="color: red"></p>
-<p>Some examples can be found in the test-inputs directory
-</p>
+    <button id="submit-btn" style="width: 100px">Render</button>
+    <p id="input-file-error" style="color: red"></p>
+    <p>NB: Some examples can be found in the test-inputs directory</p>
+</div>
 
-<!--<label>-->
-<!--    <textarea id="playground-editor" style="min-width: 50%;min-height: 30vh;max-width: 80%; max-height: 50vh;display: flex; margin-left: auto;margin-right: auto" ></textarea>-->
-<!--</label>-->
-<label>
-    <textarea id="playground-editor" name="content" cols="80" rows="15"></textarea>
-</label>
+<div id="playground">
+    <label>
+        <textarea id="playground-editor" name="content" cols="80" rows="15"></textarea>
+    </label>
+    <div id="result-section">
+        <h3>Result</h3>
+        <div id="display-area">
+            <div data-component="parsons" id="pa-ex1" class="parsons" >
+                <div class="parsons_question parsons-text" >
+                    <p>Construct a block of code that correctly implements
+                        the <strong>accumulator</strong> pattern.</p>
 
-
-<div id="display-area">
-    <div data-component="parsons" id="pa-ex1" class="parsons" >
-        <div class="parsons_question parsons-text" >
-            <p>Construct a block of code that correctly implements
-                the <strong>accumulator</strong> pattern.</p>
-
-        </div>
-        <pre  class="parsonsblocks" data-question_label="2.3.1"          style="visibility: hidden;">
+                </div>
+                <pre  class="parsonsblocks" data-question_label="2.3.1"          style="visibility: hidden;">
         x = 0
 for i in range(10):
     x = x + 1
         </pre>
+            </div>
+        </div>
     </div>
 </div>
+
 
 
 

@@ -2606,8 +2606,14 @@ export default class Parsons extends RunestoneBase {
 Parsons.counter = 0;
 
 
+
+
+//todo NB: The following code is drastically different from the Runestone version
+//todo Just letting you know ;)
+
 $(document).ready(function () {
 
+    let initialText = $("#playground-editor").val()
     //this is called to render the first example on load
     renderAll()
 
@@ -2630,13 +2636,15 @@ $(document).ready(function () {
     });
 
 
-    $("#playground-editor").on("change", function() {
-        const newText = $(this).val();
-        const newParsed = restructured.parse(newText)
-        injectHTML(newParsed)
-        setTimeout(function (){
-            renderAll()
-        },250)
+    $("#playground-editor").on("change textInput input", function() {
+        let newText = $(this).val();
+        if (newText !== initialText){
+            const newParsed = restructured.parse(newText)
+            injectHTML(newParsed)
+            setTimeout(function (){
+                renderAll()
+            },250)
+        }
     });
 
 
