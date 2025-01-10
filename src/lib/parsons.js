@@ -31,7 +31,8 @@ import LineBasedGrader from "./lineGrader.js";
 import DAGGrader from "./dagGrader.js";
 import ParsonsLine from "./parsonsLine.js";
 import ParsonsBlock from "./parsonsBlock.js";
-import {loadFile, renderAll} from "./helpers";
+import {injectHTML, loadFile, renderAll} from "./helpers";
+import restructured from "restructured";
 
 /* =====================================================================
 ==== Parsons Object ====================================================
@@ -2608,9 +2609,37 @@ Parsons.counter = 0;
 $(document).ready(function () {
 
     //this is called to render the first example on load
-    // renderAll()
+    renderAll()
 
     loadFile()
+
+    //THIS IS NEEDED TO MAP THE TAB BUTTON FOR THE EDITOR TEXTBOX
+    $('#playground-editor').keydown(function(e) {
+        //keyCode 9 is for TAB. Keeping this comment here for convenience not because I will forget ;)
+        if (e.keyCode === 9) {
+            e.preventDefault();
+
+            var start = this.selectionStart;
+            var end = this.selectionEnd;
+
+            this.value = this.value.substring(0, start) +
+                "\t" + this.value.substring(end);
+
+            this.selectionStart = this.selectionEnd = start + 1;
+        }
+    });
+
+
+    $("#playground-editor").on("change", function() {
+        const newText = $(this).val();
+        const newParsed = restructured.parse(newText)
+        injectHTML(newParsed)
+        setTimeout(function (){
+            renderAll()
+        },250)
+    });
+
+
 
     //render all new exercises
     $("#compile-btn").click(function (event) {

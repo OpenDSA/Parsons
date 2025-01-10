@@ -37,8 +37,10 @@
     <script src="../src/lib/jquery_i18n/jquery.i18n.messagestore.js"></script>
     <script src="../src/lib/jquery_i18n/jquery.i18n.parser.js"></script>
 
+
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <script>
         var runestoneMathReady = new Promise((resolve) => window.rsMathReady = resolve);
@@ -113,6 +115,16 @@
         };
     </script>
 
+    <script language="javascript" type="text/javascript" src="./lib/edit_area/edit_area_full.js"></script>
+    <script language="javascript" type="text/javascript">
+        editAreaLoader.init({
+            id : "playground-editor"		// textarea id
+            ,syntax: "css"			// syntax to be uses for highgliting
+            ,start_highlight: false		// to display with highlight mode on start-up
+            ,display: "later"
+        });
+    </script>
+
 
 </head>
 <body>
@@ -130,8 +142,18 @@
 
 <button id="submit-btn">Load Exercise</button>
 <button id="compile-btn">Render All New Exercises</button>
+<p id="input-file-error" style="color: red"></p>
 <p>Some examples can be found in the test-inputs directory
 </p>
+
+<!--<label>-->
+<!--    <textarea id="playground-editor" style="min-width: 50%;min-height: 30vh;max-width: 80%; max-height: 50vh;display: flex; margin-left: auto;margin-right: auto" ></textarea>-->
+<!--</label>-->
+<label>
+    <textarea id="playground-editor" name="content" cols="80" rows="15"></textarea>
+</label>
+
+
 <div id="display-area">
     <div data-component="parsons" id="pa-ex1" class="parsons" >
         <div class="parsons_question parsons-text" >
