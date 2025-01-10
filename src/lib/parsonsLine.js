@@ -24,11 +24,11 @@ export default class ParsonsLine {
         var trimmed = codestring.replace(/\s*$/, "");
         this.text = trimmed.replace(/^\s*/, "");
 
-        //
-        this.text = this.text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        this.text = this.text.replace(/\*(.*?)\*/g, '<em>$1</em>');
-        this.text = this.text.replace(/<b>(.*?)<\/b>/g, '<strong>$1</strong>');
-        this.text = this.text.replace(/<i>(.*?)<\/i>/g, '<em>$1</em>');
+        //28-31: Not from Runestone
+        this.text = this.text.replace(/\*\*(.*?)\*\*/g, '\(\textbf{$1}\)');
+        this.text = this.text.replace(/\*(.*?)\*/g, '\(\textif{$1}\)');
+        this.text = this.text.replace(/<b>(.*?)<\/b>/g, '\(\textbf{$1}\)');
+        this.text = this.text.replace(/<i>(.*?)<\/i>/g, '\(\textif{$1}\)');
 
         this.indent = trimmed.length - this.text.length;
         // Create the View
