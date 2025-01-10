@@ -23,6 +23,13 @@ export default class ParsonsLine {
         this.index = problem.lines.length;
         var trimmed = codestring.replace(/\s*$/, "");
         this.text = trimmed.replace(/^\s*/, "");
+
+        //
+        this.text = this.text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        this.text = this.text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+        this.text = this.text.replace(/<b>(.*?)<\/b>/g, '<strong>$1</strong>');
+        this.text = this.text.replace(/<i>(.*?)<\/i>/g, '<em>$1</em>');
+
         this.indent = trimmed.length - this.text.length;
         // Create the View
         var view;
