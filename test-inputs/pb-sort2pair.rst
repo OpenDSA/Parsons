@@ -25,6 +25,6 @@
   =====
   Convert \(\textbf{SLN'}\) to array \(\textbf{SLN}\), the solution to SORTING, by doing a binsort on A’. Specifically, for each pair (pos, pairedInput) in \(\textbf{SLN'}\), place pairedInput into position pos in array \(\textbf{SLN}\). #tag:t2; depends:pairing;
   =====
-  Return SLN, the solution to SORTING. #tag:finish; depends:t2;
+  Return \(\textbf{SLN}\), the solution to SORTING. #tag:finish; depends:t2;
   =====
-  Return SLN, the solution to PAIRING. #distractor
+  Return \(\textbf{SLN}\), the solution to PAIRING. #distractor
