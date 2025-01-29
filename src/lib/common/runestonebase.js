@@ -22,12 +22,16 @@ var pageProgressTracker = {}
 
 var NO_DECORATE = ["parsonsMove", "showeval", "video", "poll", "view_toggle",
     "dashboard", "selectquestion", "codelens", "peer", "shortanswer"]
+
+
+var eventLogs = [];
 export default class RunestoneBase {
     constructor(opts) {
         this.component_ready_promise = new Promise(
             (resolve) => (this._component_ready_resolve_fn = resolve)
         );
         this.optional = false;
+        this.standlone = this.clearEventLogs.bind(this);
         if (typeof window.allComponents === "undefined") {
             window.allComponents = [];
         }
@@ -88,6 +92,7 @@ export default class RunestoneBase {
             "Content-type": "application/json; charset=utf-8",
             Accept: "application/json",
         });
+        
     }
 
     // _`logBookEvent`
@@ -117,6 +122,11 @@ export default class RunestoneBase {
         if (!this.isTimed || eBookConfig.debug) {
             let prefix = eBookConfig.isLoggedIn ? "Save" : "Not";
             console.log(`${prefix} logging event ` + JSON.stringify(eventInfo));
+            let eventString = JSON.stringify(eventInfo);
+            let act = eventInfo.act;
+            let action = act.substring(0, act.indexOf("|")); 
+            eventLogs.push(eventString);
+            eventLogs.push("--------------" + action + "-------------")    
         }
         // When selectquestions are part of an assignment especially toggle questions
         // we need to count using the selector_id of the select question.
@@ -144,6 +154,64 @@ export default class RunestoneBase {
             this.decorateStatus();
         }
         return post_return;
+    }
+
+    //should download a file with the event logs when the check button is clicked from parsons.js 
+    async saveLogsToFile() {
+        // Join all logs with newlines
+        eventLogs.push("--------------Check button was clicked-------------")
+        const content = eventLogs.join('\n\n');
+        try {
+            const response = await fetch('http://localhost:3000/save-logs', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ logs: content })
+            });
+            
+            if (response.ok) {
+                console.log('Logs saved successfully');
+            } else {
+                console.error('Error saving logs');
+            }
+        } catch (error) {
+            console.error('Error saving logs', error);
+        }
+        
+        
+        // Create blob and trigger download
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `problem-events.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    async clearEventLogs() {
+        try {
+            const response = await fetch('http://localhost:3000/clear-logs', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                console.log('Logs cleared successfully');
+            } else {
+                console.error('Error clearing logs');
+            }
+        } catch (error) {
+            console.error('Error clearing logs', error);
+        }
+        console.log("Clearing event logs");
+        eventLogs = [];
+
     }
 
     async postLogMessage(eventInfo) {

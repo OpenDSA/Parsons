@@ -242,6 +242,7 @@ export default class Parsons extends RunestoneBase {
             that.checkCurrentAnswer();
             that.logCurrentAnswer();
             that.renderFeedback();
+            that.saveLogsToFile(); //function was added to runestoneBase.js because that is where the eventInfo is logged
         });
         this.resetButton = document.createElement("button");
         $(this.resetButton).attr("class", "btn btn-default");
@@ -648,6 +649,7 @@ export default class Parsons extends RunestoneBase {
     }
     // Based on the data, load
     async loadData(data) {
+        console.clear();
         var sourceHash = data.source;
         if (sourceHash == undefined) {
             // maintain backwards compatibility
@@ -702,6 +704,7 @@ export default class Parsons extends RunestoneBase {
                 this.resetView();
             }
         }
+        
     }
     // Return what is stored in local storage
     localData() {
@@ -1038,6 +1041,7 @@ export default class Parsons extends RunestoneBase {
     }
     // Return an array of code blocks based on what is specified in the problem
     blocksFromSource() {
+        console.clear();
         var unorderedBlocks = [];
         var originalBlocks = [];
         var blocks = [];
@@ -1046,9 +1050,10 @@ export default class Parsons extends RunestoneBase {
         for (i = 0; i < this.lines.length; i++) {
             line = this.lines[i];
             lines.push(line);
-            console.log(lines)
+            //console.log(lines)
             if (!line.groupWithNext) {
                 unorderedBlocks.push(new ParsonsBlock(this, lines));
+                
                 lines = [];
             }
         }

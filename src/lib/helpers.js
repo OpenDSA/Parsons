@@ -1,5 +1,6 @@
 import Parsons from "./parsons";
 import restructured from "restructured"
+import RunestoneBase from "./common/runestonebase";
 
 export function renderAll() {
     $("[data-component=parsons]").each(function (index) {
@@ -7,9 +8,11 @@ export function renderAll() {
     })
 }
 
+export const clearEventLogs = new RunestoneBase().standlone;
+
 export function injectHTML(parsed) {
     //THIS IS CONVENIENT FOR DEBUGGING [COMMENTED INTENTIONALLY]
-    // console.log(parsed.children[0].children)
+    //console.log(parsed.children[0].children)
 
     let $parsonsShell = $("<div>", {
         "data-component": "parsons",
@@ -165,7 +168,8 @@ export function loadFile() {
             $("#playground-editor").empty().val(rstProblem)
 
             injectHTML(parsed)
-
+            console.log("loaded")
+            clearEventLogs()//whenever a new exercise is loaded the event logs are cleared
             //clearing input field
             input.value = null
 
