@@ -125,8 +125,7 @@ export default class RunestoneBase {
             let eventString = JSON.stringify(eventInfo);
             let act = eventInfo.act;
             let action = act.substring(0, act.indexOf("|")); 
-            eventLogs.push(eventString);
-            eventLogs.push("--------------" + action + "-------------")    
+            this.saveLogsToFile(eventString);    
         }
         // When selectquestions are part of an assignment especially toggle questions
         // we need to count using the selector_id of the select question.
@@ -156,11 +155,9 @@ export default class RunestoneBase {
         return post_return;
     }
 
-    //should download a file with the event logs when the check button is clicked from parsons.js 
-    async saveLogsToFile() {
+    async saveLogsToFile(eventInfo) {
         // Join all logs with newlines
-        eventLogs.push("--------------Check button was clicked-------------")
-        const content = eventLogs.join('\n\n');
+        const content = eventInfo;
         try {
             const response = await fetch('http://localhost:3000/save-logs', {
                 method: 'POST',
@@ -179,17 +176,6 @@ export default class RunestoneBase {
             console.error('Error saving logs', error);
         }
         
-        
-        // Create blob and trigger download
-        const blob = new Blob([content], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `problem-events.txt`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
     }
 
     async clearEventLogs() {
