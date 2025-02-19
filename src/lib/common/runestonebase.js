@@ -178,13 +178,14 @@ export default class RunestoneBase {
         
     }
 
-    async clearEventLogs() {
+    async clearEventLogs(fileName) {
         try {
             const response = await fetch('http://localhost:3000/clear-logs', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
-                }
+                },
+                body: JSON.stringify({ file: fileName })
             });
             
             if (response.ok) {

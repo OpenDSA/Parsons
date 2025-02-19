@@ -169,7 +169,7 @@ export function loadFile() {
 
             injectHTML(parsed)
             console.log("loaded")
-            clearEventLogs()//whenever a new exercise is loaded the event logs are cleared
+            clearEventLogs(inputFile.name)//whenever a new exercise is loaded the event logs are cleared
             //clearing input field
             input.value = null
 

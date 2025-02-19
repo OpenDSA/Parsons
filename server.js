@@ -8,6 +8,10 @@ const port = 3000;
 app.use(cors());
 app.use(express.json());
 
+app.get('/', (req, res) => {
+    res.send('Hello World!');
+});
+
 app.post('/save-logs', (req, res) => {
     const logs = req.body.logs;
     const dirPath = path.join(__dirname, 'events/problem1/dummyUser');
@@ -27,16 +31,21 @@ app.post('/save-logs', (req, res) => {
 app.post('/clear-logs', (req, res) => {
     const dirPath = path.join(__dirname, 'events/problem1/dummyUser');
     const filePath = path.join(dirPath, 'event_logs.txt');
+    const file = {
+        event: "loadNewFile",
+        fileName: req.body.file
+    }
     
     // Ensure the directory exists
     fs.mkdirSync(dirPath, { recursive: true });
     
-    fs.writeFile(filePath, '', (err) => {
+    fs.writeFile(filePath, JSON.stringify(file), (err) => {
         if (err) {
             return res.status(500).send('Error clearing logs');
         }
         res.send('Logs cleared successfully');
     });
+    
 });
 
 app.listen(port, () => {
