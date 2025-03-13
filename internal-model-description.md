@@ -15,7 +15,7 @@ The JSON below represents a struct for the data model constructed in the Parsons
     "noindent" : true,
     "adaptive" : true,
     "numbered" : true,
-    "language" : "", //For syntax highlighting
+    "language" : "",
     "runnable" : true
   },
   "lines" : []
