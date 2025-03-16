@@ -17,6 +17,7 @@
 
 // import { pageProgressTracker } from "./bookfuncs.js";
 //import "./../styles/runestone-custom-sphinx-bootstrap.css";
+import { saveLogsToFile } from "../eventlogs";
 
 var pageProgressTracker = {}
 
@@ -31,7 +32,6 @@ export default class RunestoneBase {
             (resolve) => (this._component_ready_resolve_fn = resolve)
         );
         this.optional = false;
-        this.standlone = this.clearEventLogs.bind(this);
         if (typeof window.allComponents === "undefined") {
             window.allComponents = [];
         }
@@ -125,7 +125,7 @@ export default class RunestoneBase {
             let eventString = JSON.stringify(eventInfo);
             let act = eventInfo.act;
             let action = act.substring(0, act.indexOf("|")); 
-            this.saveLogsToFile(eventString);    
+            await saveLogsToFile(eventString);    
         }
         // When selectquestions are part of an assignment especially toggle questions
         // we need to count using the selector_id of the select question.
@@ -155,51 +155,7 @@ export default class RunestoneBase {
         return post_return;
     }
 
-    async saveLogsToFile(eventInfo) {
-        // Join all logs with newlines
-        const content = eventInfo;
-        try {
-            const response = await fetch('http://localhost:3000/save-logs', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ logs: content })
-            });
-            
-            if (response.ok) {
-                console.log('Logs saved successfully');
-            } else {
-                console.error('Error saving logs');
-            }
-        } catch (error) {
-            console.error('Error saving logs', error);
-        }
-        
-    }
 
-    async clearEventLogs(fileName) {
-        try {
-            const response = await fetch('http://localhost:3000/clear-logs', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ file: fileName })
-            });
-            
-            if (response.ok) {
-                console.log('Logs cleared successfully');
-            } else {
-                console.error('Error clearing logs');
-            }
-        } catch (error) {
-            console.error('Error clearing logs', error);
-        }
-        console.log("Clearing event logs");
-        eventLogs = [];
-
-    }
 
     async postLogMessage(eventInfo) {
         var post_return;

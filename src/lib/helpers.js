@@ -1,14 +1,13 @@
 import Parsons from "./parsons";
 import restructured from "restructured"
 import RunestoneBase from "./common/runestonebase";
+import {clearEventLogs} from "./eventlogs";
 
 export function renderAll() {
     $("[data-component=parsons]").each(function (index) {
         new Parsons({orig:$(this),useRunestoneServices:false})
     })
 }
-
-export const clearEventLogs = new RunestoneBase().standlone;
 
 export function injectHTML(parsed) {
     //THIS IS CONVENIENT FOR DEBUGGING [COMMENTED INTENTIONALLY]
