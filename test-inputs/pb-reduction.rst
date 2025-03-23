@@ -11,13 +11,12 @@
   -----
   Consider any two problems for which a suitable reduction from one to the other can be found. #tag:start; depends:;
   =====
-  The first problem takes an arbitrary instance of its input, which we will call <b>I</b>, and transforms <b>I</b> to a solution, which we will call <b>SLN</b>. #tag:first; depends:start;
+  We know that the first problem takes an arbitrary instance of its input (which we will call \(\textbf{I}\)), and transforms \(\textbf{I}\) to a solution (which we will call \(\textbf{SLN}\)). #tag:first; depends:start;
   =====
-  The second problem takes an arbitrary instance of its input, which we will call <b>I’</b>, and transforms <b>I’</b> to a solution, which we will call <b>SLN’</b>. #tag:second; depends:first;
+  We know that the second problem takes an arbitrary instance of its input (which we will call \(\textbf{I}’\)), and transforms \(\textbf{I}’\) to a solution (which we will call \(\textbf{SLN}’\)). #tag:second; depends:first;
   =====
-  Transform an arbitrary instance of the first problem to an instance of the second problem. In other words, there must be a transformation from any instance <b>I</b> of the first problem to an instance <b>I’</b> of the second problem. #tag:transform; depends:second;
+  To perform the reduction, transform an arbitrary instance of the first problem to an instance of the second problem. In other words, there must be a transformation from any instance \(\textbf{I}\) of the first problem to some instance \(\textbf{I}'\) of the second problem. #tag:transform; depends:second;
   =====
-  Apply an algorithm for the second problem to the instance <b>I’</b>,
-yielding a solution <b>SLN’</b>. #tag:algorithm; depends:transform;
+  Apply an algorithm for the second problem to the instance \(\textbf{I}’\), yielding a solution \(\textbf{SLN}’\). #tag:algorithm; depends:transform;
   =====
-  Transform <b>SLN’</b> to the solution of <b>I</b>, known as <b>SLN</b>. Note that <b>SLN</b> must in fact be the correct solution for <b>I</b> for the reduction to be acceptable. #tag:finish; depends:transform;
+  Transform \(\textbf{SLN}’\) into the solution of \(\textbf{I}\) (this would be \(\textbf{SLN}\)). Note that \(\textbf{SLN}\) must in fact be the correct solution for \(\textbf{I}\) for the reduction to be acceptable. #tag:finish; depends:transform;

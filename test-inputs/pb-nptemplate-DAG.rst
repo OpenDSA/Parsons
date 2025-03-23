@@ -21,10 +21,10 @@
   =====
   Define two transformations. #tag:trans; depends:choose;
   =====
-  Describe a polynomial-time algorithm that takes an arbitrary instance <b>I</b> of A to an instance <b>I′</b> of X. #tag:t1; depends:trans;
+  Describe a polynomial-time algorithm that takes an arbitrary instance \(\textbf{I}\) of A to an instance \(\textbf{I}'\) of X. #tag:t1; depends:trans;
   =====
-  Describe a polynomial-time algorithm that takes an arbitrary instance <b>I</b> of X to an instance <b>I′</b> of A. #distractor
+  Describe a polynomial-time algorithm that takes an arbitrary instance \(\textbf{I}\) of X to an instance \(\textbf{I}'\) of A. #distractor
   =====
-  Describe a polynomial-time transformation from the solution for <b>I’</b> in problem X (call it <b>SLN’</b>) to <b>SLN</b> such that <b>SLN</b> is the solution for <b>I</b> in problem A. #tag:t2; depends:trans;
+  Describe a polynomial-time transformation from the solution for \(\textbf{I}’\) in problem X (call it \(\textbf{SLN}'\)) to \(\textbf{SLN}\) such that \(\textbf{SLN}\) is the solution for \(\textbf{I}\) in problem A. #tag:t2; depends:trans;
   =====
-  Describe a polynomial-time transformation from the solution for <b>I’</b> in problem A (call it <b>SLN’</b>) to <b>SLN</b> such that <b>SLN</b> is the solution for <b>I</b> in problem X. #distractor
+  Describe a polynomial-time transformation from the solution for \(\textbf{I}’\) in problem A (call it \(\textbf{SLN}’\)) to \(\textbf{SLN}\) such that \(\textbf{SLN}\) is the solution for \(\textbf{I}\) in problem X. #distractor
