@@ -4,7 +4,7 @@ The JSON below represents a struct for the data model constructed in the Parsons
 
 ```json
 {
-  "question" : "",
+  "instructions" : "",
   "options" : {
     "grader" : {
       "type" : "",
