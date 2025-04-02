@@ -4,7 +4,7 @@ The JSON below represents a struct for the data model constructed in the Parsons
 
 ```json
 {
-  "instructions" : "",
+  "question_text" : "",
   "options" : {
     "grader" : {
       "type" : "",
@@ -18,7 +18,7 @@ The JSON below represents a struct for the data model constructed in the Parsons
     "language" : "",
     "runnable" : true
   },
-  "lines" : []
+  "blocks" : []
 }
 ```
 
@@ -43,7 +43,7 @@ Language options
 ```
 model["options"]["langauage"] = "python" | "java" | "javascript" | "html" | "c" | "c++" | "ruby" | "natural"
 ```
-Line options
+Block options
 ```
-line["type"] = "paired" or "distractor" or {"tag" : "", "depends" : ""}
+Block["type"] = "paired" or "distractor" or {"tag" : "", "depends" : ""}
 ```
