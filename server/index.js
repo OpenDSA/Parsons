@@ -50,7 +50,7 @@ app.use(express.static(path.resolve(__dirname, '../public')));
 app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
 
 //Upload exercise
-app.post('/upload', upload.single('file'), (req, res) => {
+app.post('/parsons/upload', upload.single('file'), (req, res) => {
     if (req.file) {
       res.send(`File uploaded! <a href="/exercise">View exercises</a>`);
     } else {
@@ -58,7 +58,7 @@ app.post('/upload', upload.single('file'), (req, res) => {
     }
   });
 
-  app.get('/exercise', (req, res) => {
+  app.get('/parsons/exercise', (req, res) => {
     const uploadsDir = path.join(__dirname, '../uploads');
   
     fs.readdir(uploadsDir, (err, files) => {
@@ -69,7 +69,7 @@ app.post('/upload', upload.single('file'), (req, res) => {
   
       const listHtml = files.map(file => {
         return `<li>
-          <a href="/exercise/${encodeURIComponent(file)}">${file}</a>
+          <a href="/parsons/exercise/${encodeURIComponent(file)}">${file}</a>
         </li>`;
       }).join('');
   
@@ -87,7 +87,7 @@ app.post('/upload', upload.single('file'), (req, res) => {
     });
   });
 
-  app.get('/exercise/:filename', (req, res) => {
+  app.get('/parsons/exercise/:filename', (req, res) => {
     const filename = req.params.filename;
     const filePath = path.join(__dirname, '../uploads', filename);
   
@@ -115,7 +115,7 @@ app.post('/upload', upload.single('file'), (req, res) => {
     res.send(dom.serialize());
   });
 
-  app.get('/{*any}', (req, res) => {
+  app.get('/parsons/{*any}', (req, res) => {
     try {
       const html = renderPage(req);
       res.send(html);

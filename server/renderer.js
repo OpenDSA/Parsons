@@ -8,9 +8,9 @@ function renderPage(req) {
   
     // Simple routing logic
     switch (req.path) {
-      case '/about':
-        pageContent = '<h1>About Page</h1><p>This is the about page.</p>';
-        break;
+    //   case '/about':
+    //     pageContent = '<h1>About Page</h1><p>This is the about page.</p>';
+    //     break;
       case '/upload':
         pageContent = `
           <h1>Upload a File</h1>
@@ -23,8 +23,8 @@ function renderPage(req) {
       case '/':
       default:
         pageContent = `<h1>Home Page</h1><p>Welcome to the homepage!</p>
-        <ul><a href="/exercise">View available exercises</a></ul>
-        <ul><a href="/upload">Upload new exercise</a></ul>
+        <ul><a href="/parsons/exercise">View available exercises</a></ul>
+        <ul><a href="/parsons/upload">Upload new exercise</a></ul>
         `;
     }
   
