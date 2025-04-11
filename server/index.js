@@ -58,7 +58,11 @@ app.post('/parsons/upload', upload.single('file'), (req, res) => {
     }
   });
 
-  app.get('/parsons/exercise', (req, res) => {
+app.get('/parsons/bundle.js', (req, res) => {
+    res.sendFile(path.join(__dirname,'../public', 'bundle.js'));
+})
+
+app.get('/parsons/exercise', (req, res) => {
     const uploadsDir = path.join(__dirname, '../uploads');
   
     fs.readdir(uploadsDir, (err, files) => {

@@ -275,7 +275,7 @@ const parsonsPageTemplate = `
         }
     };
 </script>
-  <script src="/bundle.js"></script>
+  <script src="/parsons/bundle.js"></script>
 </head>
 <body></body></html>
 `
