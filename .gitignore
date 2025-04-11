@@ -1,0 +1,17 @@
+node_modules
+uploads
+.idea/
+dist/
+
+#sample input files for testing. Not essential to ignore
+#test-inputs/
+
+#Temp files
+*~
+modules.json
+modules.csv
+*.bak
+
+# For MAC users
+*.DS_Store
+
