@@ -14,7 +14,7 @@ function renderPage(req) {
       case '/parsons/upload':
         pageContent = `
           <h1>Upload a File</h1>
-          <form action="/upload" method="post" enctype="multipart/form-data">
+          <form action="/parsons/upload" method="post" enctype="multipart/form-data">
             <input type="file" name="file" required />
             <button type="submit">Upload</button>
           </form>

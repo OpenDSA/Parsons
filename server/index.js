@@ -52,7 +52,7 @@ app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
 //Upload exercise
 app.post('/parsons/upload', upload.single('file'), (req, res) => {
     if (req.file) {
-      res.send(`File uploaded! <a href="/exercise">View exercises</a>`);
+      res.send(`File uploaded! <a href="/parsons/exercise">View exercises</a>`);
     } else {
       res.status(400).send('No file uploaded.');
     }
