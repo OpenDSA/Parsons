@@ -11,7 +11,7 @@ function renderPage(req) {
     //   case '/about':
     //     pageContent = '<h1>About Page</h1><p>This is the about page.</p>';
     //     break;
-      case '/upload':
+      case '/parsons/upload':
         pageContent = `
           <h1>Upload a File</h1>
           <form action="/upload" method="post" enctype="multipart/form-data">
