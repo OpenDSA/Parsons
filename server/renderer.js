@@ -31,7 +31,7 @@ function renderPage(req) {
     return template.replace('<!--APP-->', `<div id="app">${pageContent}</div>`);
 };
 
-function injectHTML(parsed,$) {
+function injectHTML(parsed, $) {
     //THIS IS CONVENIENT FOR DEBUGGING [COMMENTED INTENTIONALLY]
     // console.log(parsed.children[0].children)
 
@@ -157,8 +157,8 @@ function injectHTML(parsed,$) {
     $problemDiv.text(problemBlocks)
 
     $parsonsShell.append($questionDiv)
-    $parsonsShell.append($problemDiv)
 
+    $parsonsShell.append($problemDiv)
     return $parsonsShell;
 }
 
