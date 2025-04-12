@@ -22,8 +22,8 @@ function renderPage(req) {
         break;
       case '/':
       default:
-        pageContent = `<h1>Home Page</h1><p>Welcome to the homepage!</p>
-        <ul><a href="/parsons/exercise">View available exercises</a></ul>
+        pageContent = `<h1>Parsons Problems</h1><p>Welcome!</p>
+        <ul><a href="/parsons/exercise">View available parsons exercises</a></ul>
         <ul><a href="/parsons/upload">Upload new exercise</a></ul>
         `;
     }

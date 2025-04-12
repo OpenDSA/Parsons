@@ -73,14 +73,14 @@ app.get('/parsons/exercise', (req, res) => {
   
       const listHtml = files.map(file => {
         return `<li display="inline">
-          <a href="/parsons/exercise/${encodeURIComponent(file)}">${file}</a>
+          <a href="/parsons/exercise/${encodeURIComponent(file)}?prompt=true">${file}</a>
           <a href="/parsons/exercise/${encodeURIComponent(file)}/download">[Download ↓]</a>
         </li>`;
       }).join('');
   
       const html = `
         <html>
-          <head><title>Uploaded Files</title></head>
+          <head><title>Exercises</title></head>
           <body>
             <h1>Uploaded Files</h1>
             <ul>${listHtml}</ul>
