@@ -1,0 +1,7 @@
+{"event":"loadNewFile","fileName":"pa-ex-1.rst"}
+{"event":"parsonsMove","storageid":"::undefined-given","act":"start|0_0-1_0-2_0|-","course_name":"","clientLoginStatus":false,"timezoneoffset":4,"file":"pa-ex-1.rst"}
+{"event":"parsonsMove","storageid":"::undefined-given","act":"move|0_0-2_0|1_0","course_name":"","clientLoginStatus":false,"timezoneoffset":4,"file":"pa-ex-1.rst"}
+{"event":"parsonsMove","storageid":"::undefined-given","act":"move|0_0|1_0-2_0","course_name":"","clientLoginStatus":false,"timezoneoffset":4,"file":"pa-ex-1.rst"}
+{"event":"parsonsMove","storageid":"::undefined-given","act":"move|0_0|1_0-2_0","course_name":"","clientLoginStatus":false,"timezoneoffset":4,"file":"pa-ex-1.rst"}
+{"event":"parsonsMove","storageid":"::undefined-given","act":"move|0_0|1_0-2_1","course_name":"","clientLoginStatus":false,"timezoneoffset":4,"file":"pa-ex-1.rst"}
+{"event":"parsonsMove","storageid":"::undefined-given","act":"move|-|1_0-2_1-0_1","course_name":"","clientLoginStatus":false,"timezoneoffset":4,"file":"pa-ex-1.rst"}

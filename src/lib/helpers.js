@@ -3,10 +3,16 @@ import restructured from "restructured"
 import RunestoneBase from "./common/runestonebase";
 import {clearEventLogs} from "./eventlogs";
 
+let currentFileName = "pa-ex-1.rst";
+
 export function renderAll() {
     $("[data-component=parsons]").each(function (index) {
         new Parsons({orig:$(this),useRunestoneServices:false})
     })
+}
+
+export function getLoadedFileName() {
+    return currentFileName;
 }
 
 export function injectHTML(parsed) {
@@ -160,6 +166,7 @@ export function loadFile() {
                     $("#input-file-error").text('')
                 },3000)
                 input.value = null
+                currentFileName = "pa-ex-1.rst";
                 return
             }
 
@@ -171,7 +178,7 @@ export function loadFile() {
             clearEventLogs(inputFile.name)//whenever a new exercise is loaded the event logs are cleared
             //clearing input field
             input.value = null
-
+            currentFileName = inputFile.name;
         }
         reader.readAsText(inputFile)
 

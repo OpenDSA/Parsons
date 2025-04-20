@@ -18,7 +18,7 @@
 // import { pageProgressTracker } from "./bookfuncs.js";
 //import "./../styles/runestone-custom-sphinx-bootstrap.css";
 import { saveLogsToFile } from "../eventlogs";
-
+import { getLoadedFileName } from "../helpers";
 var pageProgressTracker = {}
 
 var NO_DECORATE = ["parsonsMove", "showeval", "video", "poll", "view_toggle",
@@ -122,10 +122,9 @@ export default class RunestoneBase {
         if (!this.isTimed || eBookConfig.debug) {
             let prefix = eBookConfig.isLoggedIn ? "Save" : "Not";
             console.log(`${prefix} logging event ` + JSON.stringify(eventInfo));
-            let eventString = JSON.stringify(eventInfo);
-            let act = eventInfo.act;
-            let action = act.substring(0, act.indexOf("|")); 
-            await saveLogsToFile(eventString);    
+            let fileName = getLoadedFileName();
+            eventInfo.file = fileName;
+            await saveLogsToFile(JSON.stringify(eventInfo));    
         }
         // When selectquestions are part of an assignment especially toggle questions
         // we need to count using the selector_id of the select question.

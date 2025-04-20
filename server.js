@@ -14,7 +14,8 @@ app.get('/', (req, res) => {
 
 app.post('/save-logs', (req, res) => {
     const logs = req.body.logs;
-    const dirPath = path.join(__dirname, 'events/problem1/dummyUser');
+    const logsObject = JSON.parse(logs);
+    const dirPath = path.join(__dirname, `events/${logsObject.file}/dummyUser`);
     const filePath = path.join(dirPath, 'event_logs.txt');
     
     // Ensure the directory exists
@@ -29,7 +30,7 @@ app.post('/save-logs', (req, res) => {
 });
 
 app.post('/clear-logs', (req, res) => {
-    const dirPath = path.join(__dirname, 'events/problem1/dummyUser');
+    const dirPath = path.join(__dirname, `events/${req.body.file}/dummyUser`);
     const filePath = path.join(dirPath, 'event_logs.txt');
     const file = {
         event: "loadNewFile",
@@ -39,7 +40,7 @@ app.post('/clear-logs', (req, res) => {
     // Ensure the directory exists
     fs.mkdirSync(dirPath, { recursive: true });
     
-    fs.writeFile(filePath, JSON.stringify(file), (err) => {
+    fs.writeFile(filePath, JSON.stringify(file) + '\n', (err) => {
         if (err) {
             return res.status(500).send('Error clearing logs');
         }
