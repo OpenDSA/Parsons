@@ -124,6 +124,7 @@ export default class RunestoneBase {
             console.log(`${prefix} logging event ` + JSON.stringify(eventInfo));
             let fileName = getLoadedFileName();
             eventInfo.file = fileName;
+            eventInfo.timestamp = new Date().toISOString();
             await saveLogsToFile(JSON.stringify(eventInfo));    
         }
         // When selectquestions are part of an assignment especially toggle questions

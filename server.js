@@ -34,7 +34,8 @@ app.post('/clear-logs', (req, res) => {
     const filePath = path.join(dirPath, 'event_logs.txt');
     const file = {
         event: "loadNewFile",
-        fileName: req.body.file
+        fileName: req.body.file,
+        timestamp: req.body.timestamp
     }
     
     // Ensure the directory exists

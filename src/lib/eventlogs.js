@@ -21,14 +21,14 @@ export async function saveLogsToFile(eventInfo) {
     
 }
 
-export async function clearEventLogs(fileName) {
+export async function clearEventLogs(fileName, timestamp) {
     try {
         const response = await fetch('http://localhost:3000/clear-logs', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ file: fileName })
+            body: JSON.stringify({ file: fileName, timestamp: timestamp })
         });
         
         if (response.ok) {
@@ -40,6 +40,5 @@ export async function clearEventLogs(fileName) {
         console.error('Error clearing logs', error);
     }
     console.log("Clearing event logs");
-    eventLogs = [];
 
 }

@@ -1,0 +1,3 @@
+{"event":"loadNewFile","fileName":"pa-ex-maxdist.rst","timestamp":"2025-04-25T19:01:49.820Z"}
+{"event":"parsonsMove","storageid":"::undefined-given","act":"start|4_0-2_0-1_0-7_0-0_0-11_0-3_0-10_0-5_0-6_0-8_0-9_0|-|c0","course_name":"","clientLoginStatus":false,"timezoneoffset":4,"file":"pa-ex-maxdist.rst","timestamp":"2025-04-25T19:01:54.161Z"}
+{"event":"parsonsMove","storageid":"::undefined-given","act":"move|4_0-2_0-1_0-0_0-11_0-3_0-10_0-5_0-6_0-8_0-9_0|7_2|c0","course_name":"","clientLoginStatus":false,"timezoneoffset":4,"file":"pa-ex-maxdist.rst","timestamp":"2025-04-25T19:01:54.394Z"}

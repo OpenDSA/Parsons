@@ -1,7 +1,3 @@
-{"event":"loadNewFile","fileName":"pa-ex-1.rst"}
-{"event":"parsonsMove","storageid":"::undefined-given","act":"start|0_0-1_0-2_0|-","course_name":"","clientLoginStatus":false,"timezoneoffset":4,"file":"pa-ex-1.rst"}
-{"event":"parsonsMove","storageid":"::undefined-given","act":"move|0_0-2_0|1_0","course_name":"","clientLoginStatus":false,"timezoneoffset":4,"file":"pa-ex-1.rst"}
-{"event":"parsonsMove","storageid":"::undefined-given","act":"move|0_0|1_0-2_0","course_name":"","clientLoginStatus":false,"timezoneoffset":4,"file":"pa-ex-1.rst"}
-{"event":"parsonsMove","storageid":"::undefined-given","act":"move|0_0|1_0-2_0","course_name":"","clientLoginStatus":false,"timezoneoffset":4,"file":"pa-ex-1.rst"}
-{"event":"parsonsMove","storageid":"::undefined-given","act":"move|0_0|1_0-2_1","course_name":"","clientLoginStatus":false,"timezoneoffset":4,"file":"pa-ex-1.rst"}
-{"event":"parsonsMove","storageid":"::undefined-given","act":"move|-|1_0-2_1-0_1","course_name":"","clientLoginStatus":false,"timezoneoffset":4,"file":"pa-ex-1.rst"}
+{"event":"parsons","answer":"-","source":"1_0-2_0-0_0","correct":"F","act":"incorrect|1_0-2_0-0_0|-","course_name":"","clientLoginStatus":false,"timezoneoffset":4,"percent":null,"file":"pa-ex-1.rst","timestamp":"2025-04-25T19:00:40.784Z"}
+{"event":"parsonsMove","storageid":"::undefined-given","act":"start|1_0-2_0-0_0|-","course_name":"","clientLoginStatus":false,"timezoneoffset":4,"percent":null,"file":"pa-ex-1.rst","timestamp":"2025-04-25T19:01:16.587Z"}
+{"event":"parsonsMove","storageid":"::undefined-given","act":"move|1_0-0_0|2_0","course_name":"","clientLoginStatus":false,"timezoneoffset":4,"percent":null,"file":"pa-ex-1.rst","timestamp":"2025-04-25T19:01:16.836Z"}
