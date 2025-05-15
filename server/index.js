@@ -1,8 +1,10 @@
 const express = require('express');
 const fs = require('fs')
 const path = require('path');
+const {exec} = require("child_process")
 const multer = require('multer');
-const {renderPage,injectHTML, parsonsPageTemplate} = require('./renderer');
+const {renderPage, parsonsPageTemplate} = require('./renderer');
+const {injectHTML,injectFromPIF} = require('./helpers/parsonsBuild')
 
 //RST Parse
 const _Parser = require('./lib/rst/Parser');
@@ -105,11 +107,11 @@ app.get('/parsons/exercise', (req, res) => {
 
   });
 
+
   app.get('/parsons/exercise/:filename', (req, res) => {
     const filename = req.params.filename;
     const showPrompt = req.query.prompt === "true" ? true : false;
 
-    console.log(showPrompt)
     const filePath = path.join(__dirname, '../uploads', filename);
   
     if (!fs.existsSync(filePath)) {
@@ -127,6 +129,44 @@ app.get('/parsons/exercise', (req, res) => {
     const $ = jqueryFactory(window);
 
     $('body').append(injectHTML(rstJson,$));
+
+    if(!showPrompt){
+        $('.parsons-text').hide()
+    }
+  
+    res.send(dom.serialize());
+  });
+
+
+  app.get('/parsons/exercise/pif/:filename', async(req, res) => {
+    const filename = req.params.filename;
+    const showPrompt = req.query.prompt === "true" ? true : false;
+
+    //PIF Parsed here with gem
+    await exec(`pif ./uploads/feasibility-examples/${filename}.peml ./uploads/parsed/`,
+      (error, stdout, stderr) => {
+        if (error) {
+          console.error(`Exec err: ${error.message}`);
+          return;
+        }
+        if (stderr) {
+          console.error(`Stderr: ${stderr}`);
+        }
+      }
+    )
+
+    const parsedJsonPath = path.join
+      (__dirname, '../uploads/parsed', filename+".json");
+
+    const parsedJsonContent = fs.readFileSync(parsedJsonPath, 'utf-8');
+
+    const parsedJson = JSON.parse(parsedJsonContent)
+  
+    const dom = new JSDOM(parsonsPageTemplate);
+    const window = dom.window;
+    const $ = jqueryFactory(window);
+
+    $('body').append(injectFromPIF(parsedJson,$))
 
     if(!showPrompt){
         $('.parsons-text').hide()
