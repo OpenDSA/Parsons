@@ -72,12 +72,6 @@ export default class Parsons extends RunestoneBase {
         Parsons.counter++; //    Unique identifier
         this.counterId = "parsons-" + Parsons.counter;
 
-        // for (var i = 0; i < this.children.length; i++) {
-        //     if ($(this.children[i]).is("[data-question]")) {
-        //         this.question = this.children[i];
-        //         break;
-        //     }
-        // }
         this.initializeOptions();
         this.grader =
             this.options.grader === "dag"

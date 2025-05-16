@@ -139,10 +139,8 @@ function injectFromPIF(pifJson, $) {
 
     console.log(JSON.stringify(pifJson))
     pifJson = pifJson.value
-
-    /*
-    Creating Shells of Parsons HTML elements
-    */
+    
+    //Creating Shells of Parsons HTML elements
     let $parsonsShell = $("<div>", {
         "data-component": "parsons",
         "id": pifJson.id || "parsonsShell",
@@ -162,11 +160,8 @@ function injectFromPIF(pifJson, $) {
         "class": "parsonsblocks",
         "style": "visibility: hidden;"
     })
-
-
-    /*
-    PIF Options
-    */
+    
+    //PIF Options
     const validOptions = ["maxdist", "order", "indent", "grader", "adaptive",
         "numbered", "langugae", "runnable"]
 
@@ -185,17 +180,23 @@ function injectFromPIF(pifJson, $) {
 
 
     //ADDING QUESTION INSTRUCTION
+    //TODO git flavored markdown
     $questionDiv.empty().append($("<p>").append
         ($.parseHTML(pifJson.question_text)))
 
     //ADDING PROBLEM BLOCKS
+
+    const blockTags = pifJson.blocks.map(block => block.tag)
+    const uniqueBlockTags = [...new Set(blockTags)]
+
     const blockListLength = pifJson.blocks.length
     let problemBlocks = pifJson.blocks.reduce(
         (accumulator, currentValue, idx) =>
-            idx < blockListLength
-                ? accumulator.concat(currentValue.text, "---")
-                : accumulator.concat(currentValue)
-        , "")
+            accumulator.concat(
+                lineWithTagAndDependencies(currentValue,uniqueBlockTags),
+                idx < blockListLength - 1 ? "---" : ""
+            ), ""
+    )
 
 
     //the problem definition read from the rst file is injected here
@@ -207,6 +208,28 @@ function injectFromPIF(pifJson, $) {
     return $parsonsShell;
 }
 
+function lineWithTagAndDependencies(currentValue,tags) {
+    if (tags.length){
+        const tagIndex =  tags.indexOf(currentValue.tag)
+        let depString = ""
+        //Get Dependencies
+        if (typeof currentValue.depends === "string"){
+           const depIndex = tags.indexOf(currentValue.depends)
+            depString = depIndex === -1 ? "" : " "+depIndex
+        }else{
+            //Handle multiple deps
+            const depIndexes = currentValue.depends
+                .map( dep => tags.indexOf(dep))
+            depString = depIndexes
+                .reduce((acc,curr,idx)=>
+                    acc.concat(curr, idx === depIndexes.length - 1 ? "":",")
+                ," ")
+        }
+        return currentValue.text
+            .concat(" #tag:" + tagIndex +"; depends:"+depString+";")
+    }
+    return currentValue.text
+}
 
 module.exports = {
     injectHTML,
