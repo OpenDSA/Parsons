@@ -115,8 +115,7 @@ function injectHTML(parsed, $) {
 
     if (isRawHTML) {
         $questionDiv.empty().append($($.parseHTML(problemInstructions)))
-    }
-    else {
+    } else {
         problemInstructions = problemInstructions.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         problemInstructions = problemInstructions.replace(/\*(.*?)\*/g, '<em>$1</em>');
         problemInstructions = problemInstructions.replace(/<b>(.*?)<\/b>/g, '<strong>$1</strong>');
@@ -139,7 +138,7 @@ function injectFromPIF(pifJson, $) {
 
     console.log(JSON.stringify(pifJson))
     pifJson = pifJson.value
-    
+
     //Creating Shells of Parsons HTML elements
     let $parsonsShell = $("<div>", {
         "data-component": "parsons",
@@ -160,10 +159,10 @@ function injectFromPIF(pifJson, $) {
         "class": "parsonsblocks",
         "style": "visibility: hidden;"
     })
-    
+
     //PIF Options
     const validOptions = ["maxdist", "order", "indent", "grader", "adaptive",
-        "numbered", "langugae", "runnable"]
+        "numbered", "language", "runnable"]
 
     Object.entries(([optionKey, optionValue]) => {
         switch (optionKey) {
@@ -182,7 +181,7 @@ function injectFromPIF(pifJson, $) {
     //ADDING QUESTION INSTRUCTION
     //TODO git flavored markdown
     $questionDiv.empty().append($("<p>").append
-        ($.parseHTML(pifJson.question_text)))
+    ($.parseHTML(pifJson.question_text)))
 
     //ADDING PROBLEM BLOCKS
 
@@ -193,7 +192,7 @@ function injectFromPIF(pifJson, $) {
     let problemBlocks = pifJson.blocks.reduce(
         (accumulator, currentValue, idx) =>
             accumulator.concat(
-                lineWithTagAndDependencies(currentValue,uniqueBlockTags),
+                lineWithTagAndDependencies(currentValue, uniqueBlockTags),
                 idx < blockListLength - 1 ? "---" : ""
             ), ""
     )
@@ -208,25 +207,25 @@ function injectFromPIF(pifJson, $) {
     return $parsonsShell;
 }
 
-function lineWithTagAndDependencies(currentValue,tags) {
-    if (tags.length){
-        const tagIndex =  tags.indexOf(currentValue.tag)
+function lineWithTagAndDependencies(currentValue, tags) {
+    if (tags.length) {
+        const tagIndex = tags.indexOf(currentValue.tag)
         let depString = ""
         //Get Dependencies
-        if (typeof currentValue.depends === "string"){
-           const depIndex = tags.indexOf(currentValue.depends)
-            depString = depIndex === -1 ? "" : " "+depIndex
-        }else{
+        if (typeof currentValue.depends === "string") {
+            const depIndex = tags.indexOf(currentValue.depends)
+            depString = depIndex === -1 ? "" : " " + depIndex
+        } else {
             //Handle multiple deps
             const depIndexes = currentValue.depends
-                .map( dep => tags.indexOf(dep))
+                .map(dep => tags.indexOf(dep))
             depString = depIndexes
-                .reduce((acc,curr,idx)=>
-                    acc.concat(curr, idx === depIndexes.length - 1 ? "":",")
-                ," ")
+                .reduce((acc, curr, idx) =>
+                        acc.concat(curr, idx === depIndexes.length - 1 ? "" : ",")
+                    , " ")
         }
         return currentValue.text
-            .concat(" #tag:" + tagIndex +"; depends:"+depString+";")
+            .concat(" #tag:" + tagIndex + "; depends:" + depString + ";")
     }
     return currentValue.text
 }

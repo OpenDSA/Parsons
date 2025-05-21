@@ -29,7 +29,7 @@ import "./css/parsons.css";
 import "./css/prettify.css";
 import "./css/index.css";
 import LineBasedGrader from "./lineGrader.js";
-import DAGGrader from "./dagGrader.js"; 
+import DAGGrader from "./dagGrader.js";
 import ParsonsLine from "./parsonsLine.js";
 import ParsonsBlock from "./parsonsBlock.js";
 // import {injectHTML, loadFile, renderAll} from "./helpers";
@@ -95,6 +95,7 @@ export default class Parsons extends RunestoneBase {
         }
         this.runnableDiv = null;
     }
+
     // Based on the data-fields in the original HTML, initialize options
     initializeOptions() {
         var options = {
@@ -163,6 +164,7 @@ export default class Parsons extends RunestoneBase {
         options["runnable"] = $(this.origElem).data("runnable");
         this.options = options;
     }
+
     // Based on what is specified in the original HTML, create the HTML view
     initializeView() {
         this.outerDiv = document.createElement("div");
@@ -278,6 +280,7 @@ export default class Parsons extends RunestoneBase {
             }
         }
     }
+
     // Initialize lines and solution properties
     initializeLines(text) {
         this.lines = [];
@@ -323,7 +326,7 @@ export default class Parsons extends RunestoneBase {
                     textBlock.indexOf(";", tagIndex + 5)
                 );
                 if (tag == "") tag = "block-" + i;
-                dependsIndex = textBlock.indexOf(";depends:");
+                dependsIndex = textBlock.indexOf("depends:");
                 let dependsString = textBlock.substring(
                     dependsIndex + 9,
                     textBlock.indexOf(";", dependsIndex + 9)
@@ -400,6 +403,7 @@ export default class Parsons extends RunestoneBase {
         }
         this.solution = solution;
     }
+
     // Based on the blocks, create the source and answer areas
     async initializeAreas(sourceBlocks, answerBlocks, options) {
         // Create blocks property as the sum of the two
@@ -593,6 +597,7 @@ export default class Parsons extends RunestoneBase {
             $(replaceElement).replaceWith(this.outerDiv);
         }
     }
+
     // Make blocks interactive (both drag-and-drop and keyboard)
     initializeInteractivity() {
         for (var i = 0; i < this.blocks.length; i++) {
@@ -609,6 +614,7 @@ export default class Parsons extends RunestoneBase {
             }
         }
     }
+
     // Make one block be keyboard accessible
     initializeTabIndex() {
         for (var i = 0; i < this.blocks.length; i++) {
@@ -619,9 +625,11 @@ export default class Parsons extends RunestoneBase {
             }
         }
     }
+
     /* =====================================================================
     ==== SERVER COMMUNICATION ==============================================
     ===================================================================== */
+
     // Return the argument that is newer based on the timestamp
     newerData(dataA, dataB) {
         var dateA = dataA.timestamp;
@@ -640,6 +648,7 @@ export default class Parsons extends RunestoneBase {
             return dataB;
         }
     }
+
     // Based on the data, load
     async loadData(data) {
         var sourceHash = data.source;
@@ -697,10 +706,11 @@ export default class Parsons extends RunestoneBase {
             }
         }
     }
+
     // Return what is stored in local storage
     localData() {
         //This ternary was introduced to prevent persistence in playground environments
-        var data = eBookConfig.isPlaygroundEnv ? null :  localStorage.getItem(this.storageId);
+        var data = eBookConfig.isPlaygroundEnv ? null : localStorage.getItem(this.storageId);
         if (data !== null) {
             if (data.charAt(0) == "{") {
                 data = JSON.parse(data);
@@ -712,10 +722,12 @@ export default class Parsons extends RunestoneBase {
         }
         return data;
     }
+
     // RunestoneBase: Sent when the server has data
     restoreAnswers(serverData) {
         this.loadData(serverData);
     }
+
     // RunestoneBase: Load what is in local storage
     checkLocalStorage() {
         if (this.graderactive) {
@@ -723,6 +735,7 @@ export default class Parsons extends RunestoneBase {
         }
         this.loadData(this.localData());
     }
+
     // RunestoneBase: Set the state of the problem in local storage
     setLocalStorage(data) {
         var toStore;
@@ -741,6 +754,7 @@ export default class Parsons extends RunestoneBase {
         }
         localStorage.setItem(this.storageId, JSON.stringify(toStore));
     }
+
     /* =====================================================================
     ==== LOGGING ===========================================================
     ===================================================================== */
@@ -765,6 +779,7 @@ export default class Parsons extends RunestoneBase {
         event.act = act;
         this.logBookEvent(event);
     }
+
     // Log the answer to the problem
     //   correct: The answer given matches the solution
     //   incorrect*: The answer is wrong for various reasons
@@ -798,9 +813,11 @@ export default class Parsons extends RunestoneBase {
 
         await this.logBookEvent(event);
     }
+
     /* =====================================================================
     ==== ACCESSING =========================================================
     ===================================================================== */
+
     // Answer the hash of the adaptive state
     adaptiveHash() {
         if (!this.options.adaptive) {
@@ -822,6 +839,7 @@ export default class Parsons extends RunestoneBase {
         }
         return hash.join("-");
     }
+
     // Create options for creating blocks based on a hash
     optionsFromHash(hash) {
         var split;
@@ -849,6 +867,7 @@ export default class Parsons extends RunestoneBase {
         }
         return options;
     }
+
     // Answer the hash of the answer area
     answerHash() {
         var hash = [];
@@ -862,6 +881,7 @@ export default class Parsons extends RunestoneBase {
             return hash.join("-");
         }
     }
+
     // Answer the hash of the source area
     sourceHash() {
         var hash = [];
@@ -875,6 +895,7 @@ export default class Parsons extends RunestoneBase {
             return hash.join("-");
         }
     }
+
     // Inter-problem adaptive changes
     // Based on the recentAttempts, remove distractors, add indent, combine blocks
     adaptBlocks(input) {
@@ -1030,6 +1051,7 @@ export default class Parsons extends RunestoneBase {
         }
         return combinedOutput;
     }
+
     // Return an array of code blocks based on what is specified in the problem
     blocksFromSource() {
         var unorderedBlocks = [];
@@ -1162,6 +1184,7 @@ export default class Parsons extends RunestoneBase {
         }
         return blocks;
     }
+
     // Return a codeblock that corresponds to the hash
     blockFromHash(hash) {
         var split = hash.split("_");
@@ -1177,6 +1200,7 @@ export default class Parsons extends RunestoneBase {
         }
         return block;
     }
+
     // Return an array of codeblocks that corresponds to the hash
     blocksFromHash(hash) {
         var split;
@@ -1195,6 +1219,7 @@ export default class Parsons extends RunestoneBase {
             return blocks;
         }
     }
+
     // Return a block object by the full id including id prefix
     getBlockById(id) {
         for (var i = 0; i < this.blocks.length; i++) {
@@ -1205,6 +1230,7 @@ export default class Parsons extends RunestoneBase {
         }
         return undefined;
     }
+
     // Return array of codeblocks that are the solution
     solutionBlocks() {
         var solutionBlocks = [];
@@ -1225,6 +1251,7 @@ export default class Parsons extends RunestoneBase {
         }
         return solutionBlocks;
     }
+
     // Return array of codeblocks based on what is in the source field
     sourceBlocks() {
         var sourceBlocks = [];
@@ -1237,6 +1264,7 @@ export default class Parsons extends RunestoneBase {
         }
         return sourceBlocks;
     }
+
     // Return array of enabled codeblocks based on what is in the source field
     enabledSourceBlocks() {
         var all = this.sourceBlocks();
@@ -1249,6 +1277,7 @@ export default class Parsons extends RunestoneBase {
         }
         return enabled;
     }
+
     // Return array of codeblocks based on what is in the answer field
     answerBlocks() {
         var answerBlocks = [];
@@ -1261,6 +1290,7 @@ export default class Parsons extends RunestoneBase {
         }
         return answerBlocks;
     }
+
     // Return array of enabled codeblocks based on what is in the answer field
     enabledAnswerBlocks() {
         var all = this.answerBlocks();
@@ -1273,6 +1303,7 @@ export default class Parsons extends RunestoneBase {
         }
         return enabled;
     }
+
     // Return array of codelines based on what is in the answer field
     answerLines() {
         var answerLines = [];
@@ -1285,6 +1316,7 @@ export default class Parsons extends RunestoneBase {
         }
         return answerLines;
     }
+
     // Go up the hierarchy until you get to a block; return that block element
     getBlockFor(element) {
         var check = element;
@@ -1293,6 +1325,7 @@ export default class Parsons extends RunestoneBase {
         }
         return check;
     }
+
     // Return the maximum indent for the solution
     solutionIndent() {
         var indent = 0;
@@ -1302,9 +1335,11 @@ export default class Parsons extends RunestoneBase {
         }
         return indent;
     }
+
     /* =====================================================================
     ==== ACTION ============================================================
     ===================================================================== */
+
     // The "Check Me" button was pressed.
     checkCurrentAnswer() {
         if (!this.hasSolved) {
@@ -1525,6 +1560,7 @@ export default class Parsons extends RunestoneBase {
         );
         localStorage.setItem(this.adaptiveId + "Solved", false);
     }
+
     // Return a boolean of whether the user must deal with indentation
     usesIndentation() {
         if (this.noindent || this.solutionIndent() == 0) {
@@ -1534,6 +1570,7 @@ export default class Parsons extends RunestoneBase {
             return true;
         }
     }
+
     // Find a distractor to remove to make the problem easier
     //  * try first in the answer area
     //  * if not, try the source area
@@ -1556,6 +1593,7 @@ export default class Parsons extends RunestoneBase {
         }
         return undefined;
     }
+
     // Return the number of blocks that exist
     numberOfBlocks(fIncludeDistractors = true) {
         var numberOfBlocks = 0;
@@ -1569,6 +1607,7 @@ export default class Parsons extends RunestoneBase {
         }
         return numberOfBlocks;
     }
+
     // Remove this distractors to make the problem easier
     removeDistractor(block) {
         // Alert the user to what is happening
@@ -1676,6 +1715,7 @@ export default class Parsons extends RunestoneBase {
             );
         }
     }
+
     // Give the user the indentation
     removeIndentation() {
         // Alert the user to what is happening
@@ -2024,6 +2064,7 @@ export default class Parsons extends RunestoneBase {
             );
         }
     }
+
     // Adapt the problem to be easier
     //  * remove a distractor until none are present
     //  * combine blocks until 3 are left
@@ -2057,6 +2098,7 @@ export default class Parsons extends RunestoneBase {
             //}
         }
     }
+
     // The "Help Me" button was pressed and the problem should be simplified
     helpMe() {
         this.clearFeedback();
@@ -2075,9 +2117,11 @@ export default class Parsons extends RunestoneBase {
             this.makeEasier();
         }
     }
+
     /* =====================================================================
     ==== UTILITY ===========================================================
     ===================================================================== */
+
     // Return a date from a timestamp (either mySQL or JS format)
     dateFromTimestamp(timestamp) {
         var date = new Date(timestamp);
@@ -2087,6 +2131,7 @@ export default class Parsons extends RunestoneBase {
         }
         return date;
     }
+
     // A function for returning a shuffled version of an array
     shuffled(array) {
         var currentIndex = array.length;
@@ -2104,9 +2149,11 @@ export default class Parsons extends RunestoneBase {
         }
         return returnArray;
     }
+
     /* =====================================================================
     ==== KEYBOARD INTERACTION ==============================================
     ===================================================================== */
+
     // When the user has entered the Parsons problem via keyboard mode
     enterKeyboardMode() {
         $(this.keyboardTip).show();
@@ -2114,15 +2161,18 @@ export default class Parsons extends RunestoneBase {
         $(this.answerLabel).hide();
         this.clearFeedback();
     }
+
     // When the user leaves the Parsons problem via keyboard mode
     exitKeyboardMode() {
         $(this.keyboardTip).hide();
         $(this.sourceLabel).show();
         $(this.answerLabel).show();
     }
+
     /* =====================================================================
     ==== VIEW ==============================================================
     ===================================================================== */
+
     // Clear any feedback from the answer area
     clearFeedback() {
         $(this.answerArea).removeClass("incorrect correct");
@@ -2134,6 +2184,7 @@ export default class Parsons extends RunestoneBase {
         }
         $(this.messageDiv).hide();
     }
+
     // Disable the interface
     async disableInteraction() {
         // Disable blocks
@@ -2149,6 +2200,7 @@ export default class Parsons extends RunestoneBase {
         $(this.checkButton).hide();
         $(this.resetButton).hide();
     }
+
     // Based on the moving element, etc., establish the moving state
     //   rest: not moving
     //   source: moving inside source area
@@ -2182,6 +2234,7 @@ export default class Parsons extends RunestoneBase {
         }
         return "moving";
     }
+
     // Update the Parsons view
     // This gets called when dragging a block
     updateView() {
@@ -2500,6 +2553,7 @@ export default class Parsons extends RunestoneBase {
         state = newState;
         this.state = state;
     }
+
     addBlockLabels(blocks) {
         var bin = -1;
         var binCount = 0;
@@ -2542,6 +2596,7 @@ export default class Parsons extends RunestoneBase {
             });
         }
     }
+
     // Put all the blocks back into the source area, reshuffling as necessary
     resetView() {
         // Clear everything
@@ -2600,8 +2655,6 @@ export default class Parsons extends RunestoneBase {
 Parsons.counter = 0;
 
 
-
-
 //todo NB: The following code is drastically different from the Runestone version
 //todo Just letting you know ;)
 
@@ -2610,9 +2663,9 @@ $(document).ready(function () {
     console.log("ebei")
 
     $("[data-component=parsons]").each(function (index) {
-        try{
-            new Parsons({orig:$(this),useRunestoneServices:false})
-        }catch (e) {
+        try {
+            new Parsons({orig: $(this), useRunestoneServices: false})
+        } catch (e) {
 
         }
     })

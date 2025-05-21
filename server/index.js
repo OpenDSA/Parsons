@@ -77,7 +77,6 @@ app.get('/parsons/exercise', (req, res) => {
         const listHtml = files.map(file => {
             return `<li display="inline">
           <a href="/parsons/exercise/${encodeURIComponent(file)}?prompt=true">${file}</a>
-          <a href="/parsons/exercise/${encodeURIComponent(file)}/download">[Download ↓]</a>
         </li>`;
         }).join('');
 
@@ -95,53 +94,11 @@ app.get('/parsons/exercise', (req, res) => {
     });
 });
 
-app.get('/parsons/exercise/:filename/download', (req, res) => {
-    const filename = req.params.filename;
-    const filePath = path.join(__dirname, '../uploads', filename);
-
-    res.download(filePath, filename, (err) => {
-        if (err) {
-            console.error('Download error:', err);
-            res.status(500).send('Could not download the file.');
-        }
-    });
-
-});
-
-
-app.get('/parsons/exercise/:filename', (req, res) => {
-    const filename = req.params.filename;
-    const showPrompt = req.query.prompt === "true" ? true : false;
-
-    const filePath = path.join(__dirname, '../uploads', filename);
-
-    if (!fs.existsSync(filePath)) {
-        return res.status(404).send('File not found');
-    }
-
-    const fileContent = fs.readFileSync(filePath, 'utf-8');
-
-    //RST is parsed here
-    const tree = _Parser.parse(fileContent)
-    const rstJson = cleanTree(tree)
-
-    const dom = new JSDOM(parsonsPageTemplate);
-    const window = dom.window;
-    const $ = jqueryFactory(window);
-
-    $('body').append(injectHTML(rstJson, $));
-
-    if (!showPrompt) {
-        $('.parsons-text').hide()
-    }
-
-    res.send(dom.serialize());
-});
-
 
 app.get('/parsons/exercise/pif/:filename', async (req, res) => {
     const filename = req.params.filename;
     const showPrompt = req.query.prompt === "true" ? true : false;
+
 
     //PIF Parsed here with gem
     await exec(`pif ./uploads/feasibility-examples/${filename}.peml ./uploads/parsed/`,
