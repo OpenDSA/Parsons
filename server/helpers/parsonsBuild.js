@@ -134,9 +134,6 @@ function injectHTML(parsed, $) {
 
 
 function injectFromPIF(pifJson, $) {
-    console.log("inside")
-
-    console.log(JSON.stringify(pifJson))
     pifJson = pifJson.value
 
     //Creating Shells of Parsons HTML elements

@@ -1,7 +1,8 @@
 const express = require('express');
 const fs = require('fs')
 const path = require('path');
-const {exec} = require("child_process")
+const https = require('https');
+const FormData = require('form-data');
 const multer = require('multer');
 const {renderPage, parsonsPageTemplate} = require('./renderer');
 const {injectHTML, injectFromPIF} = require('./helpers/parsonsBuild')
@@ -94,32 +95,66 @@ app.get('/parsons/exercise', (req, res) => {
     });
 });
 
+async function parsePIF(filename) {
+    const formBody = new FormData();
+    formBody.append("peml",
+        Buffer.from(
+            fs.readFileSync(`./uploads/feasibility-examples/${filename}`, "utf8")
+            , "utf8"
+        )
+    )
+    formBody.append("is_pif", "true")
+
+    const parseCallOptions = {
+        method: 'POST',
+        host: 'endeavour.cs.vt.edu',
+        path: '/peml-live/api/parse',
+        headers: formBody.getHeaders()
+    }
+
+    return new Promise((resolve, reject) => {
+        const req = https.request(parseCallOptions, res => {
+            let responseBody = '';
+
+            res.setEncoding('utf-8');
+
+            res.on('data', chunk => {
+                responseBody += chunk;
+            });
+
+            res.on('end', () => {
+                try {
+                    const json = JSON.parse(responseBody);
+                    resolve({status: res.statusCode, headers: res.headers, body: json});
+                } catch (e) {
+                    resolve({status: res.statusCode, headers: res.headers, body: responseBody});
+                }
+            });
+        });
+
+        req.on('error', err => {
+            reject(err);
+        });
+
+        formBody.pipe(req);
+    });
+}
+
 
 app.get('/parsons/exercise/pif/:filename', async (req, res) => {
     const filename = req.params.filename;
-    const showPrompt = req.query.prompt === "true" ? true : false;
+    const showPrompt = req.query.prompt === "true";
+    let parsedJson = null
 
-
-    //PIF Parsed here with gem
-    await exec(`pif ./uploads/feasibility-examples/${filename}.peml ./uploads/parsed/`,
-        (error, stdout, stderr) => {
-            if (error) {
-                console.error(`Exec err: ${error.message}`);
-                return;
-            }
-            if (stderr) {
-                console.error(`Stderr: ${stderr}`);
-            }
+    await (async () => {
+        try {
+            const result = await parsePIF(filename)
+            parsedJson = result.body
+        } catch (e) {
+            console.error("failed", e)
         }
-    )
+    })();
 
-
-    const parsedJsonPath = path.join
-    (__dirname, '../uploads/parsed', filename + ".json");
-
-    const parsedJsonContent = fs.readFileSync(parsedJsonPath, 'utf-8');
-
-    const parsedJson = JSON.parse(parsedJsonContent)
 
     const dom = new JSDOM(parsonsPageTemplate);
     const window = dom.window;
