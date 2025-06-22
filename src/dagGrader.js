@@ -119,7 +119,8 @@ export default class DAGGrader extends LineBasedGrader {
 
   checkCorrectOrdering(solutionLines, answerLines) {
     if (!isDirectedAcyclicGraph(graphToNX(solutionLines))) {
-      throw "Dependency between blocks does not form a Directed Acyclic Graph; Problem unsolvable.";
+      throw "Dependency between blocks does not form a Directed Acyclic Graph;"
+      + " Problem unsolvable.";
     }
 
     let seen = new Set();
