@@ -1,28 +1,24 @@
-FROM node:22
-
-# Ruby isntall & depenedencies
-RUN apt-get update && apt-get install -y \
-  ruby-full \
-  build-essential \
-  && rm -rf /var/lib/apt/lists/*
-
+FROM node:22-slim AS build
 
 WORKDIR /app
+
+COPY package*.json ./
+
+
+RUN npm ci --only=production
+
 
 COPY . .
 
-# Node depenedencies
-RUN npm install --include=dev
-RUN npm run build
-
-
-WORKDIR /app/peml
-RUN gem build *.gemspec
-RUN gem install *.gem
+FROM node:22-slim
 
 WORKDIR /app
 
+COPY --from=build /app /app
+
+
 EXPOSE 3000
 
-#CMD ["npm", "run", "start"]
-CMD ["nodemon","server/index.js"]
+ENV NODE_ENV=production
+
+CMD ["node","server/index.js"]
