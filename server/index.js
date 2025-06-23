@@ -1,17 +1,11 @@
 const express = require('express');
 const fs = require('fs')
 const path = require('path');
-const https = require('https');
-const FormData = require('form-data');
 const multer = require('multer');
 const {renderPage, parsonsPageTemplate} = require('./renderer');
-const {injectHTML, injectFromPIF} = require('./helpers/parsonsBuild')
+const {injectFromPIF} = require('./helpers/parsonsBuild')
+const {parsePIF, downloadFile} = require('./helpers/pifParsingHelpers')
 
-//RST Parse
-
-const _Parser = require('./lib/rst/Parser');
-const map = require('unist-util-map');
-const _ = require('lodash');
 
 //Virtual Dom
 const {JSDOM} = require('jsdom');
@@ -35,16 +29,6 @@ const upload = multer(
             }
         }
     });
-
-function cleanTree(tree, options = {}) {
-    return map(tree, function (node) {
-        const omits = [];
-        if (!options.position) omits.push('position');
-        if (!options.blanklines) omits.push('blanklines');
-        if (!options.indent) omits.push('indent');
-        return _.omit(node, omits);
-    });
-}
 
 
 const app = express();
@@ -95,62 +79,20 @@ app.get('/parsons/exercise', (req, res) => {
     });
 });
 
-async function parsePIF(filename) {
-    const formBody = new FormData();
-    formBody.append("peml",
-        Buffer.from(
-            fs.readFileSync(`./uploads/feasibility-examples/${filename}`, "utf8")
-            , "utf8"
-        )
-    )
-    formBody.append("is_pif", "true")
-
-    const parseCallOptions = {
-        method: 'POST',
-        host: 'endeavour.cs.vt.edu',
-        path: '/peml-live/api/parse',
-        headers: formBody.getHeaders()
-    }
-
-    return new Promise((resolve, reject) => {
-        const req = https.request(parseCallOptions, res => {
-            let responseBody = '';
-
-            res.setEncoding('utf-8');
-
-            res.on('data', chunk => {
-                responseBody += chunk;
-            });
-
-            res.on('end', () => {
-                try {
-                    const json = JSON.parse(responseBody);
-                    resolve({status: res.statusCode, headers: res.headers, body: json});
-                } catch (e) {
-                    resolve({status: res.statusCode, headers: res.headers, body: responseBody});
-                }
-            });
-        });
-
-        req.on('error', err => {
-            reject(err);
-        });
-
-        formBody.pipe(req);
-    });
-}
-
 
 app.get('/parsons/exercise/pif/:filename', async (req, res) => {
     const filename = req.params.filename;
     const showPrompt = req.query.prompt === "true";
     let parsedJson = null
 
+
     await (async () => {
         try {
+            await downloadFile(filename);
             const result = await parsePIF(filename)
             parsedJson = result.body
         } catch (e) {
+
             console.error("failed", e)
         }
     })();
