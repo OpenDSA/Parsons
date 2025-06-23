@@ -80,7 +80,7 @@ app.get('/parsons/exercise', (req, res) => {
 });
 
 
-app.get('/parsons/exercise/pif/:filename', async (req, res) => {
+app.get('/parsons/pif/:filename', async (req, res) => {
     const filename = req.params.filename;
     const showNoPrompt = req.query.prompt === "false";
     let parsedJson = null
