@@ -5,29 +5,46 @@ function renderPage(req) {
     const template = fs.readFileSync(path.resolve(__dirname, 'template.html'), 'utf-8');
 
     let pageContent = '';
-  
+
     // Simple routing logic
     switch (req.path) {
-    //   case '/about':
-    //     pageContent = '<h1>About Page</h1><p>This is the about page.</p>';
-    //     break;
-      case '/parsons/upload':
-        pageContent = `
+        //   case '/about':
+        //     pageContent = '<h1>About Page</h1><p>This is the about page.</p>';
+        //     break;
+        case '/parsons/upload':
+            pageContent = `
           <h1>Upload a File</h1>
           <form action="/parsons/upload" method="post" enctype="multipart/form-data">
             <input type="file" name="file" required />
             <button type="submit">Upload</button>
           </form>
         `;
-        break;
-      case '/':
-      default:
-        pageContent = `<h1>Parsons Problems</h1><p>Welcome!</p>
-        <ul><a href="/parsons/exercise">View available parsons exercises</a></ul>
-        <ul><a href="/parsons/upload">Upload new exercise</a></ul>
+            break;
+        case '/':
+        default:
+            pageContent = `<h1>Welcome to OpenDSA-Parsons</h1>
+        <p>Input files are sourced from the 
+        <a href="https://github.com/CSSPLICE/peml-feasibility-examples/tree/main/parsons">
+        PEML feasibility repository</a> 
+        </p>
+        <br>
+        <p>All exercises in the parsons directory can be found the URL below</p>
+        <p>https://acos.cs.vt.edu/parsons/exercise/pif/&ltfilename&gt.peml</p>
+        
+        
+        <p>For example, the fixed-demo exercise will be found at 
+        <a href="https://acos.cs.vt.edu/parsons/exercise/pif/fixed-demo.peml">
+        https://acos.cs.vt.edu/parsons/exercise/pif/fixed-demo.peml</a></p>
+        <br>
+        
+        <p>You may append ?prompt=false to hide the instructions for the problem.</p>
+        <p>For example, 
+        <a href="https://acos.cs.vt.edu/parsons/exercise/pif/fixed-demo.peml?prompt=false">
+        https://acos.cs.vt.edu/parsons/exercise/pif/fixed-demo.peml?prompt=false</a>
+   
         `;
     }
-  
+
     return template.replace('<!--APP-->', `<div id="app">${pageContent}</div>`);
 };
 
