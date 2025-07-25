@@ -6,6 +6,10 @@ function renderPage(req) {
 
     let pageContent = '';
 
+    const protocol = req.protocol
+    const host = req.get("host")
+
+
     // Simple routing logic
     switch (req.path) {
         //   case '/about':
@@ -29,18 +33,18 @@ function renderPage(req) {
         </p>
         <br>
         <p>All exercises in the parsons directory can be found the URL below</p>
-        <p>https://acos.cs.vt.edu/parsons/pif/&ltfilename&gt.peml</p>
+        <p>${protocol}://${host}/parsons/pif/&ltfilename&gt.peml</p>
         
         
         <p>For example, the fixed-demo exercise will be found at 
-        <a href="https://acos.cs.vt.edu/parsons/pif/fixed-demo.peml">
-        https://acos.cs.vt.edu/parsons/pif/fixed-demo.peml</a></p>
+        <a href="${protocol}://${host}/parsons/pif/fixed-demo.peml">
+        ${protocol}://${host}/parsons/pif/fixed-demo.peml</a></p>
         <br>
         
         <p>You may append ?prompt=false to hide the instructions for the problem.</p>
         <p>For example, 
-        <a href="https://acos.cs.vt.edu/parsons/pif/fixed-demo.peml?prompt=false">
-        https://acos.cs.vt.edu/parsons/pif/fixed-demo.peml?prompt=false</a>
+        <a href="${protocol}://${host}/parsons/pif/fixed-demo.peml?prompt=false">
+        ${protocol}://${host}/parsons/pif/fixed-demo.peml?prompt=false</a>
    
         `;
     }
@@ -94,10 +98,8 @@ const parsonsPageTemplate = `
     window.MathJax = {
         "tex": {
             "inlineMath": [
-                [
-                    "\\(",
-                    "\\)"
-                ]
+                [ "$", "$" ],
+                [ "\\(", "\\)"]
             ],
             "tags": "none",
             "tagSide": "right",

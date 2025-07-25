@@ -161,16 +161,23 @@ function injectFromPIF(pifJson, $) {
     const validOptions = ["maxdist", "order", "indent", "grader", "adaptive",
         "numbered", "language", "runnable"]
 
-    Object.entries(([optionKey, optionValue]) => {
+    Object.entries(pifJson.options).forEach(([optionKey, optionValue]) => {
         switch (optionKey) {
             case "grader":
                 $problemDiv.attr("data-grader", optionValue.type)
                 break
+            //Note this operation has been inverted for runestone's purposes
+            case "indent":
+                if (!optionValue)
+                    $problemDiv.attr("data-noindent", true)
+                break
+
             default:
-                if (validOptions.includes(optionKey))
+                if (!optionValue) {
+                } else if (validOptions.includes(optionKey))
                     $problemDiv.attr("data-" + optionKey, optionValue)
                 else
-                    console.error("Invalid parsons optiion parsed")
+                    console.error("Invalid parsons option parsed")
         }
     })
 
