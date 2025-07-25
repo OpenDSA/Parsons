@@ -172,6 +172,10 @@ function injectFromPIF(pifJson, $) {
                     $problemDiv.attr("data-noindent", true)
                 break
 
+            case "runnable":
+                //Skipping runnable for now
+                break
+
             default:
                 if (!optionValue) {
                 } else if (validOptions.includes(optionKey))

@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const fs = require('fs')
 const path = require('path');
@@ -32,7 +33,7 @@ const upload = multer(
 
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(express.static(path.resolve(__dirname, '../public')));
 app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
