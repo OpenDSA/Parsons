@@ -6,6 +6,7 @@ const multer = require('multer');
 const {renderPage, parsonsPageTemplate} = require('./renderer');
 const {injectFromPIF} = require('./helpers/parsonsBuild')
 const {parsePIF, downloadFile} = require('./helpers/pifParsingHelpers')
+const {logEvent} = require('./helpers/logger');
 
 
 //Virtual Dom
@@ -55,6 +56,8 @@ app.delete('/parsons/delete/:filename', (req, res) => {
     const filename = req.params.filename;
     const uploadsDir = path.join(__dirname, '../uploads');
     const filePath = path.join(uploadsDir, filename);
+    
+    logEvent(`Deleting file ${filename}`);
     
     // Security check: ensure the file is in the uploads directory
     if (!filePath.startsWith(uploadsDir)) {
