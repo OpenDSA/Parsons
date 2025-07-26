@@ -41,7 +41,7 @@ OR (for hot reloads on save)
 nodemon server/index.js
 ```
 
-The homepage will be served at http://localhost:3000/parsons by default. To use a different port set PORT in the environment to the desired one. 
+The homepage will be served at http://localhost:3000/parsons/ by default. To use a different port set PORT in the environment to the desired one. 
 
 OR Copy `.env.example` and edit as desired
 
