@@ -14,11 +14,19 @@ const GITHUB_DIR_PATH = 'parsons';
 
 async function parsePIF(source,filename) {
     const formBody = new FormData();
+    
+    // Check if file exists before trying to read it
+    const filePath = source === 'github' ? 
+        path.join(__dirname, '../../downloads', filename) : 
+        path.join(__dirname, '../../uploads', filename);
+    
+    if (!fs.existsSync(filePath)) {
+        throw new Error(`File "${filename}" not found in ${source === 'github' ? 'downloads' : 'uploads'} directory`);
+    }
+    
     formBody.append("peml",
         Buffer.from(
-            fs.readFileSync (source === 'github' ? 
-                `./downloads/${filename}` : 
-                `./uploads/${filename}`, "utf8")
+            fs.readFileSync(filePath, "utf8")
             , "utf8"
         )
     )
@@ -45,6 +53,11 @@ async function parsePIF(source,filename) {
             res.on('end', () => {
                 try {
                     const json = JSON.parse(responseBody);
+                    if (!json.value) {
+                        logEvent("parse failed")
+                        reject(new Error(json));
+                        return;
+                    }
                     resolve({status: res.statusCode, headers: res.headers, body: json});
                 } catch (e) {
                     resolve({status: res.statusCode, headers: res.headers, body: responseBody});
@@ -82,10 +95,19 @@ async function downloadFile(filename) {
             + filename
         https.get(url, (response) => {
 
+            if (response.statusCode === 404) {
+                console.error(`File '${filename}' not found in GitHub repository`);
+                logEvent(`File '${filename}' not found in GitHub repository`);
+                response.resume();
+                reject(new Error(`File "${filename}" not found in GitHub repository`));
+                return;
+            }
+            
             if (response.statusCode !== 200) {
                 console.error(`Failed to get '${url}' (${response.statusCode})`);
                 logEvent(`Failed to get '${url}' (${response.statusCode})`)
                 response.resume();
+                reject(new Error(`Failed to get '${url}' (${response.statusCode})`));
                 return;
             }
             response.pipe(file);
@@ -111,10 +133,7 @@ async function downloadFile(filename) {
 }
 
 
-/**
- * Get a list of all .peml filenames in the GitHub directory
- * @returns {Promise<string[]>} Array of .peml filenames
- */
+
 async function getGitHubFileList() {
     return new Promise((resolve, reject) => {
         const options = {
@@ -168,10 +187,7 @@ async function getGitHubFileList() {
     });
 }
 
-/**
- * Get a list of all uploaded .peml filenames from the uploads directory
- * @returns {Promise<string[]>} Array of uploaded .peml filenames
- */
+
 async function getUploadedFileList() {
     return new Promise((resolve, reject) => {
         const uploadsDir = path.join(__dirname, '../../uploads');
@@ -197,10 +213,7 @@ async function getUploadedFileList() {
     });
 }
 
-/**
- * Get combined list of all available .peml files (GitHub + uploaded)
- * @returns {Promise<{github: string[], uploaded: string[]}>} Object with arrays of filenames
- */
+
 async function getAllAvailableFiles() {
     try {
         const [githubFiles, uploadedFiles] = await Promise.all([

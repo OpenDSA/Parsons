@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const {getAllAvailableFiles} = require('./helpers/pifParsingHelpers');
 
-async function renderPage(req) {
+async function renderPage(req, state) {
     const template = fs.readFileSync(path.resolve(__dirname, 'template.html'), 'utf-8');
 
     let pageContent = '';
@@ -13,15 +13,6 @@ async function renderPage(req) {
 
     // Simple routing logic
     switch (req.path) {
-        // case '/parsons/upload':
-        //     pageContent = `
-        //   <h1>Upload a File</h1>
-        //   <form action="/parsons/upload" method="post" enctype="multipart/form-data">
-        //     <input type="file" name="file" required />
-        //     <button type="submit">Upload</button>
-        //   </form>
-        // `;
-        //     break;
         case '/':
         default:
             // Get available files
@@ -84,7 +75,7 @@ async function renderPage(req) {
         
         <details>
             <summary style="font-size: 1.1em; font-weight: bold; cursor: pointer;">
-                Uploaded Files (${availableFiles.uploaded.length} files)
+                Uploaded Files (${availableFiles.uploaded.length} files) ${state.NEW_UPLOAD ? '<span style="color: green;">New Upload!!!</span>' : ''}
             </summary>
             <ul style="list-style-type: none; padding-left: 0; margin-top: 10px;">
                 ${uploadedFileList}
@@ -176,8 +167,8 @@ const parsonsPageTemplate = `
     window.MathJax = {
         "tex": {
             "inlineMath": [
-                [ "$", "$" ],
-                [ "\\(", "\\)"]
+                [ "$", "$" ]
+                // [ "\(", "\)"]
             ],
             "tags": "none",
             "tagSide": "right",
