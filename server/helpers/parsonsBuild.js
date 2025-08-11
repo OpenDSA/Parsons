@@ -1,3 +1,5 @@
+const { NormalModuleReplacementPlugin } = require("webpack");
+
 function injectHTML(parsed, $) {
     //THIS IS CONVENIENT FOR DEBUGGING [COMMENTED INTENTIONALLY]
     // console.log(parsed.children[0].children)
@@ -157,6 +159,9 @@ function injectFromPIF(pifJson, $) {
         "style": "visibility: hidden;"
     })
 
+    const hasDefinedGraph = !!pifJson.blocks.map(block => block.depends)
+                    .filter(t => !['', null, undefined, '-1'].includes(t)).length
+
     //PIF Options
     const validOptions = ["maxdist", "order", "indent", "grader", "adaptive",
         "numbered", "language", "runnable"]
@@ -164,6 +169,10 @@ function injectFromPIF(pifJson, $) {
     Object.entries(pifJson.options).forEach(([optionKey, optionValue]) => {
         switch (optionKey) {
             case "grader":
+                if (optionValue.type === 'dag' && !hasDefinedGraph){
+                    $problemDiv.attr("data-grader", "order")
+                    break
+                }
                 $problemDiv.attr("data-grader", optionValue.type)
                 break
             //Note this operation has been inverted for runestone's purposes
@@ -187,24 +196,24 @@ function injectFromPIF(pifJson, $) {
 
 
     //ADDING QUESTION INSTRUCTION
-    //TODO git flavored markdown
     $questionDiv.empty().append($("<p>").append
-    ($.parseHTML(pifJson.question_text)))
+        ($.parseHTML(pifJson.question_text)))
 
     //ADDING PROBLEM BLOCKS
-
+    //blockIds are identified as tags here
     const blockTags = pifJson.blocks.map(block => block.tag)
     const uniqueBlockTags = [...new Set(blockTags)]
+        .filter(t => !['', null, undefined].includes(t))
+
 
     const blockListLength = pifJson.blocks.length
     let problemBlocks = pifJson.blocks.reduce(
-        (accumulator, currentValue, idx) =>
+        (accumulator, currentBlock, idx) =>
             accumulator.concat(
-                lineWithTagAndDependencies(currentValue, uniqueBlockTags),
-                idx < blockListLength - 1 ? "---" : ""
-            ), ""
+                lineWithTagAndDependencies(hasDefinedGraph,currentBlock, uniqueBlockTags),
+                idx < blockListLength - 1 ? "---" : "")
+        , ""
     )
-
 
     //the problem definition read from the rst file is injected here
     $problemDiv.text(problemBlocks)
@@ -215,27 +224,31 @@ function injectFromPIF(pifJson, $) {
     return $parsonsShell;
 }
 
-function lineWithTagAndDependencies(currentValue, tags) {
-    if (tags.length) {
-        const tagIndex = tags.indexOf(currentValue.tag)
+function lineWithTagAndDependencies(hasDefinedGraph,currentBlock, tags) {
+    if (currentBlock.depends === '-1')
+        return currentBlock.text + " #distractor"
+
+    if (hasDefinedGraph) {
+        const tagIndex = tags.indexOf(currentBlock.tag)
         let depString = ""
         //Get Dependencies
-        if (typeof currentValue.depends === "string") {
-            const depIndex = tags.indexOf(currentValue.depends)
+        if (typeof currentBlock.depends === "string") {
+            const depIndex = tags.indexOf(currentBlock.depends)
             depString = depIndex === -1 ? "" : " " + depIndex
         } else {
             //Handle multiple deps
-            const depIndexes = currentValue.depends
+            const depIndexes = currentBlock.depends
                 .map(dep => tags.indexOf(dep))
             depString = depIndexes
                 .reduce((acc, curr, idx) =>
-                        acc.concat(curr, idx === depIndexes.length - 1 ? "" : ",")
+                    acc.concat(curr, idx === depIndexes.length - 1 ? "" : ",")
                     , " ")
         }
-        return currentValue.text
+
+        return currentBlock.text
             .concat(" #tag:" + tagIndex + "; depends:" + depString + ";")
     }
-    return currentValue.text
+    return currentBlock.text
 }
 
 module.exports = {

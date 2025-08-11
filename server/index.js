@@ -117,6 +117,8 @@ app.get('/parsons/pif/:source/:filename', async (req, res) => {
 
         const result = await parsePIF(source, filename);
         parsedJson = result.body;
+        // logEvent(`Parsed PIF file ${filename} successfully`);
+        // console.log(JSON.stringify(parsedJson))
     } catch (e) {
         console.error("Failed to parse PIF file:", e);
         error = e;
@@ -151,7 +153,7 @@ app.get('/parsons/pif/:source/:filename', async (req, res) => {
                     <a href="/parsons/" style="display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">← Back to Home</a>
                 </div>
             `);
-        }
+        } 
         
         if (showNoPrompt) {
             $('.parsons-text').hide();
