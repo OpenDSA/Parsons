@@ -7,18 +7,10 @@ an extension of [PEML](https://cssplice.org/peml/).
 
 ## How to run
 
-1. Clone the repo and checkout the server branch
+1. Clone the repo
 
 ```bash
 git clone https://github.com/OpenDSA/Parsons.git
-cd Parsons
-git checkout server
-```
-
-OR
-
-```bash
-git clone -b server https://github.com/OpenDSA/Parsons.git && cd Parsons
 ```
 
 ### For Development
@@ -29,6 +21,8 @@ git clone -b server https://github.com/OpenDSA/Parsons.git && cd Parsons
 npm install 
 ```
 
+
+#### Server-side development
 2. Run server
 
 ```bash
@@ -48,6 +42,15 @@ OR Copy `.env.example` and edit as desired
 ```bash
 cp .env.example .env
 ```
+
+
+#### Client-side development
+3. Client-side code can be found in `./src`. This code is bundled with webpack into the `./public` directory with the command below.
+```bash
+  npx webpack --config webpack.config.js
+```
+NB: Remember to bundle when changes are made so they are served to the browser.
+
 
 ### For Production
 
