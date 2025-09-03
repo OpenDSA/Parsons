@@ -1,0 +1,8 @@
+services:
+
+  parsons:
+    build: ./Dockerfile-dev
+    volumes:
+      - .:/app
+    ports:
+      - "3001:3000"

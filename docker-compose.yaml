@@ -1,0 +1,9 @@
+services:
+   parsons1:
+     build: .
+     ports:
+       - "3001:3000"
+   parsons2:
+     build: .
+     ports:
+       - "3002:3000"

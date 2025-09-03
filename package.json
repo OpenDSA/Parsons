@@ -1,0 +1,35 @@
+{
+  "name": "parsons",
+  "version": "1.0.0",
+  "description": "",
+  "main": "webpack.config.js",
+  "scripts": {
+    "build": "webpack",
+    "start": "node server/index.js",
+    "dev": "webpack --watch & nodemon server/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "css-loader": "^7.1.2",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "jquery": "^3.7.1",
+    "jsdom": "^26.0.0",
+    "less": "^4.3.0",
+    "multer": "^1.4.5-lts.2",
+    "nodemon": "^3.1.10",
+    "restructured": "^0.0.11",
+    "style-loader": "^4.0.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.10",
+    "@babel/preset-env": "^7.26.9",
+    "babel-loader": "^10.0.0",
+    "webpack": "^5.99.5",
+    "webpack-cli": "^6.0.1"
+  }
+}

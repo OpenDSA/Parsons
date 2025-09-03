@@ -1,4 +1,4 @@
-node_modules/
+node_modules
 .idea/
 dist/
 
@@ -14,3 +14,9 @@ modules.csv
 # For MAC users
 *.DS_Store
 
+uploads
+downloads
+peml
+
+server.log
+.env
