@@ -319,6 +319,13 @@ export default class Parsons extends RunestoneBase {
                     .substring(distractIndex + 12, textBlock.length)
                     .trim();
                 textBlock = textBlock.substring(0, distractIndex + 11);
+                } else if (textBlock.includes("#pick-one:")) {
+                    // Parse pick-one group identifier
+                    distractIndex = textBlock.indexOf("#pick-one:");
+                    var pickOneGroup = textBlock
+                    .substring(distractIndex + 10, textBlock.length)
+                    .trim();
+                    textBlock = textBlock.substring(0, distractIndex + 9);
             } else if (textBlock.includes("#tag:")) {
                 textBlock = textBlock.replace(/#tag:.*;.*;/, (s) =>
                     s.replace(/\s+/g, "")
@@ -343,7 +350,7 @@ export default class Parsons extends RunestoneBase {
                 options["displaymath"] = false;
             }
             textBlock = textBlock.replace(
-                /\s*#(paired|distractor|tag:.*;.*;)\s*/g,
+                /\s*#(paired|distractor|pick-one|tag:.*;.*;)\s*/g,
                 function (mystring, arg1) {
                     options[arg1] = true;
                     return "";
@@ -373,6 +380,11 @@ export default class Parsons extends RunestoneBase {
                     } else if (options["distractor"]) {
                         line.distractor = true;
                         line.paired = false;
+                        line.distractHelptext = distractHelptext;
+                        } else if (options["pick-one"]) {
+                        line.distractor = true;
+                        line.paired = false;
+                        line.pickOneGroup = pickOneGroup; // Store group identifier
                         line.distractHelptext = distractHelptext;
                     } else {
                         line.distractor = false;
@@ -1038,136 +1050,189 @@ export default class Parsons extends RunestoneBase {
     }
     // Return an array of code blocks based on what is specified in the problem
     blocksFromSource() {
-        var unorderedBlocks = [];
-        var originalBlocks = [];
-        var blocks = [];
-        var lines = [];
-        var block, line, i;
-        for (i = 0; i < this.lines.length; i++) {
-            line = this.lines[i];
-            lines.push(line);
-            console.log(lines)
-            if (!line.groupWithNext) {
-                unorderedBlocks.push(new ParsonsBlock(this, lines));
-                lines = [];
+    var unorderedBlocks = [];
+    var originalBlocks = [];
+    var blocks = [];
+    var lines = [];
+    var block, line, i;
+    for (i = 0; i < this.lines.length; i++) {
+        line = this.lines[i];
+        lines.push(line);
+        console.log(lines)
+        if (!line.groupWithNext) {
+            unorderedBlocks.push(new ParsonsBlock(this, lines));
+            lines = [];
+        }
+    }
+    originalBlocks = unorderedBlocks;
+    
+    // Trim the distractors
+    var removedBlocks = [];
+    if (this.options.maxdist !== undefined) {
+        var maxdist = this.options.maxdist;
+        var distractors = [];
+        for (i = 0; i < unorderedBlocks.length; i++) {
+            block = unorderedBlocks[i];
+            if (block.lines[0].distractor) {
+                distractors.push(block);
             }
         }
-        originalBlocks = unorderedBlocks;
-        // Trim the distractors
-        var removedBlocks = [];
-        if (this.options.maxdist !== undefined) {
-            var maxdist = this.options.maxdist;
-            var distractors = [];
+        if (maxdist < distractors.length) {
+            distractors = this.shuffled(distractors);
+            distractors = distractors.slice(0, maxdist);
             for (i = 0; i < unorderedBlocks.length; i++) {
                 block = unorderedBlocks[i];
                 if (block.lines[0].distractor) {
-                    distractors.push(block);
-                }
-            }
-            if (maxdist < distractors.length) {
-                distractors = this.shuffled(distractors);
-                distractors = distractors.slice(0, maxdist);
-                for (i = 0; i < unorderedBlocks.length; i++) {
-                    block = unorderedBlocks[i];
-                    if (block.lines[0].distractor) {
-                        if ($.inArray(block, distractors) > -1) {
-                            blocks.push(block);
-                        } else {
-                            removedBlocks.push(i);
-                        }
-                    } else {
+                    if ($.inArray(block, distractors) > -1) {
                         blocks.push(block);
-                    }
-                }
-                unorderedBlocks = blocks;
-                blocks = [];
-            }
-        }
-
-        // This is necessary, set the pairDistractors value before blocks get shuffled - William Li (August 2020)
-        if (this.recentAttempts < 2) {
-            // 1 Try
-            this.pairDistractors = false;
-        } else {
-            this.pairDistractors = true;
-        }
-
-        if (this.options.order === undefined) {
-            // Shuffle, respecting paired distractors
-            var chunks = [],
-                chunk = [];
-            for (i = 0; i < unorderedBlocks.length; i++) {
-                block = unorderedBlocks[i];
-                if (block.lines[0].paired && this.pairDistractors) {
-                    // William Li (August 2020)
-                    chunk.push(block);
-                } else {
-                    chunk = [];
-                    chunk.push(block);
-                    chunks.push(chunk);
-                }
-            }
-            chunks = this.shuffled(chunks);
-            for (i = 0; i < chunks.length; i++) {
-                chunk = chunks[i];
-                if (chunk.length > 1) {
-                    // shuffle paired distractors
-                    chunk = this.shuffled(chunk);
-                    for (j = 0; j < chunk.length; j++) {
-                        blocks.push(chunk[j]);
+                    } else {
+                        removedBlocks.push(i);
                     }
                 } else {
-                    blocks.push(chunk[0]);
-                }
-            }
-        } else {
-            // Order according to order specified
-            for (i = 0; i < this.options.order.length; i++) {
-                block = originalBlocks[this.options.order[i]];
-                if (
-                    block !== undefined &&
-                    $.inArray(this.options.order[i], removedBlocks) < 0
-                ) {
                     blocks.push(block);
                 }
             }
+            unorderedBlocks = blocks;
+            blocks = [];
         }
-        this.pairDistractors = true;
-        if (this.options.adaptive) {
-            this.limitDistractors = true;
-            blocks = this.adaptBlocks(blocks);
-            if (!this.limitDistractors) {
-                for (i = 0; i < removedBlocks.length; i++) {
-                    var index =
-                        this.options.order == undefined
-                            ? Math.random(0, blocks.length)
-                            : $.inArray(removedBlocks[i], this.options.order);
-                    blocks.splice(index, 0, originalBlocks[removedBlocks[i]]);
-                }
-            }
-        }
-        if (this.pairDistractors && this.options.order != undefined) {
-            //move pairs together
-            //Go through array looking for ditractor and its pair
-            for (i = 1; i < originalBlocks.length; i++) {
-                if (
-                    originalBlocks[i].lines[0].paired &&
-                    $.inArray(originalBlocks[i], blocks) >= 0
-                ) {
-                    var j = i;
-                    while ($.inArray(originalBlocks[j - 1], blocks) < 0) {
-                        // find the paired distractor or solution block it will be next to
-                        j--;
-                    }
-                    var indexTo = $.inArray(originalBlocks[j - 1], blocks);
-                    var indexFrom = $.inArray(originalBlocks[i], blocks);
-                    blocks.splice(indexFrom, 1);
-                    blocks.splice(indexTo, 0, originalBlocks[i]);
-                }
-            }
-        }
-        return blocks;
     }
+
+    // Handle pick-one distractors
+    var pickOneGroups = {};
+    var pickOneBlocks = [];
+    
+    // Group distractors by their pickOneGroup identifier
+    for (i = 0; i < unorderedBlocks.length; i++) {
+        block = unorderedBlocks[i];
+        if (block.lines[0].distractor && block.lines[0].pickOneGroup) {
+            var groupId = block.lines[0].pickOneGroup;
+            if (!pickOneGroups[groupId]) {
+                pickOneGroups[groupId] = [];
+            }
+            pickOneGroups[groupId].push(block);
+        }
+    }
+    
+    // For each pick-one group, randomly select one distractor
+    for (var groupId in pickOneGroups) {
+        var group = pickOneGroups[groupId];
+        if (group.length > 1) {
+            // Randomly select one from the group
+            var selectedIndex = Math.floor(Math.random() * group.length);
+            var selectedBlock = group[selectedIndex];
+            pickOneBlocks.push(selectedBlock);
+            
+            // Mark the others for removal
+            for (var j = 0; j < group.length; j++) {
+                if (j !== selectedIndex) {
+                    var blockIndex = unorderedBlocks.indexOf(group[j]);
+                    if (blockIndex > -1) {
+                        removedBlocks.push(blockIndex);
+                    }
+                }
+            }
+        } else if (group.length === 1) {
+            // Only one in group, keep it
+            pickOneBlocks.push(group[0]);
+        }
+    }
+    
+    // Update unorderedBlocks to remove the unselected pick-one distractors
+    if (Object.keys(pickOneGroups).length > 0) {
+        blocks = [];
+        for (i = 0; i < unorderedBlocks.length; i++) {
+            if ($.inArray(i, removedBlocks) < 0) {
+                blocks.push(unorderedBlocks[i]);
+            }
+        }
+        unorderedBlocks = blocks;
+        blocks = [];
+    }
+
+    // This is necessary, set the pairDistractors value before blocks get shuffled - William Li (August 2020)
+    if (this.recentAttempts < 2) {
+        // 1 Try
+        this.pairDistractors = false;
+    } else {
+        this.pairDistractors = true;
+    }
+
+    if (this.options.order === undefined) {
+        // Shuffle, respecting paired distractors
+        var chunks = [],
+            chunk = [];
+        for (i = 0; i < unorderedBlocks.length; i++) {
+            block = unorderedBlocks[i];
+            if (block.lines[0].paired && this.pairDistractors) {
+                // William Li (August 2020)
+                chunk.push(block);
+            } else {
+                chunk = [];
+                chunk.push(block);
+                chunks.push(chunk);
+            }
+        }
+        chunks = this.shuffled(chunks);
+        for (i = 0; i < chunks.length; i++) {
+            chunk = chunks[i];
+            if (chunk.length > 1) {
+                // shuffle paired distractors
+                chunk = this.shuffled(chunk);
+                for (var j = 0; j < chunk.length; j++) {
+                    blocks.push(chunk[j]);
+                }
+            } else {
+                blocks.push(chunk[0]);
+            }
+        }
+    } else {
+        // Order according to order specified
+        for (i = 0; i < this.options.order.length; i++) {
+            block = originalBlocks[this.options.order[i]];
+            if (
+                block !== undefined &&
+                $.inArray(this.options.order[i], removedBlocks) < 0
+            ) {
+                blocks.push(block);
+            }
+        }
+    }
+    this.pairDistractors = true;
+    if (this.options.adaptive) {
+        this.limitDistractors = true;
+        blocks = this.adaptBlocks(blocks);
+        if (!this.limitDistractors) {
+            for (i = 0; i < removedBlocks.length; i++) {
+                var index =
+                    this.options.order == undefined
+                        ? Math.random(0, blocks.length)
+                        : $.inArray(removedBlocks[i], this.options.order);
+                blocks.splice(index, 0, originalBlocks[removedBlocks[i]]);
+            }
+        }
+    }
+    if (this.pairDistractors && this.options.order != undefined) {
+        //move pairs together
+        //Go through array looking for ditractor and its pair
+        for (i = 1; i < originalBlocks.length; i++) {
+            if (
+                originalBlocks[i].lines[0].paired &&
+                $.inArray(originalBlocks[i], blocks) >= 0
+            ) {
+                var j = i;
+                while ($.inArray(originalBlocks[j - 1], blocks) < 0) {
+                    // find the paired distractor or solution block it will be next to
+                    j--;
+                }
+                var indexTo = $.inArray(originalBlocks[j - 1], blocks);
+                var indexFrom = $.inArray(originalBlocks[i], blocks);
+                blocks.splice(indexFrom, 1);
+                blocks.splice(indexTo, 0, originalBlocks[i]);
+            }
+        }
+    }
+    return blocks;
+}
     // Return a codeblock that corresponds to the hash
     blockFromHash(hash) {
         var split = hash.split("_");

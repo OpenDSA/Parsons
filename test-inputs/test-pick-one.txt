@@ -1,0 +1,10 @@
+for i in range(10):
+    print(i)
+---
+for i in range(9): #pick-one:group1
+---
+for i in range(11): #pick-one:group1
+---
+while i < 10: #pick-one:group1
+---
+print("wrong") #distractor:
