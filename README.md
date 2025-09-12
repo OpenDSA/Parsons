@@ -1,28 +1,60 @@
 # Parsons
-Support for Parsons Problems
 
-## Introduction
+This is a server side rendered implementation of OpenDSA/Parsons.
+This implementation consumes
+the [Parsons Problem Input Format (PIF)](https://docs.google.com/document/d/1ZzEgS4_2SyS88fhWVp0041KmfWFnXBKgMWmPEDI7chw/edit?usp=sharing)
+an extension of [PEML](https://cssplice.org/peml/).
 
-This repository holds and an adaptation of Runestone's Parsons Problem implementation to support the SPLICE Parsons Problem Input Format (PIF)
+## How to run
 
-To run the project, clone the repo
+1. Clone the repo
 
 ```bash
-  git clone https://github.com/OpenDSA/Parsons.git
+git clone https://github.com/OpenDSA/Parsons.git
 ```
 
-Run `npm install` from the root folder to install all dependencies 
+### For Development
 
-Finally run 
+1. Install dependencies
+
+```bash
+npm install 
+```
+
+
+#### Server-side development
+2. Run server
+
+```bash
+node server/index.js 
+```
+
+OR (for hot reloads on save)
+
+```bash
+nodemon server/index.js
+```
+
+The homepage will be served at http://localhost:3000/parsons/ by default. To use a different port set PORT in the environment to the desired one. 
+
+OR Copy `.env.example` and edit as desired
+
+```bash
+cp .env.example .env
+```
+
+
+#### Client-side development
+3. Client-side code can be found in `./src`. This code is bundled with webpack into the `./public` directory with the command below.
 ```bash
   npx webpack --config webpack.config.js
 ```
+NB: Remember to bundle when changes are made so they are served to the browser.
 
-Note: It is helpful to re-run the last 2 commands (i.e. `npm install` and `npx webpack --config webpack.config.js`) whenever the code changes.
-Just the `npx` command will suffice for regular changes. `npm install` is necessary if the `package.json` file changes.
 
-A good rule of thumb is to run both commands when ever you pull from github.
+### For Production
 
-You can now open the src/index.html file in your browser of choice
+```bash
+docker compose up
+```
 
-This page presents a Parsons Playground for constructing problems quickly

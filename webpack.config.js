@@ -1,47 +1,28 @@
-const path = require('path'), webpack = require('webpack');
+const path = require('path');
 
 module.exports = {
-    entry: './src/lib/parsons.js',
-    output: {
-        filename: 'main.js',
-        path: path.resolve(__dirname, 'dist'),
+  entry: './src/parsons.js',
+  output: {
+    path: path.resolve(__dirname, 'public'),
+    filename: 'bundle.js',
+  },
+  mode: 'development', // or 'production'
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        exclude: /node_modules/,
+        use: 'babel-loader', // Optional if using modern JS
+      },
+      {
+        test: /\.m?js$/,
+        resolve: { fullySpecified: false }, // allow bare imports
+        type: 'javascript/auto'
+      },
+      {
+        test: /\.css$/i,
+        use: ['style-loader', 'css-loader'],
     },
-    mode:'development',
-    module: {
-        rules: [{
-            test: /\.(js|jsx)$/,
-            exclude: /node_modules/,
-            use: {
-                loader: 'babel-loader'
-            }
-        },
-            {
-                test: /\.css$/i,
-                use: ['style-loader', 'css-loader'],
-            },
-            {
-                test: /\.less$/i,
-                use: [
-                    {
-                        loader: "style-loader",
-                    },
-                    {
-                        loader: "css-loader",
-                    },
-                    {
-                        loader: "less-loader",
-                        options: {
-                            lessOptions: {
-                                strictMath: true,
-                            },
-                        },
-                    },
-                ],
-            },
-        ]
-    }
-    ,
-    plugins:[ new webpack.ProvidePlugin({
-        restructured:"restructured"
-    })]
+    ],
+  },
 };
