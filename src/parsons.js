@@ -324,6 +324,13 @@ export default class Parsons extends RunestoneBase {
                     .substring(distractIndex + 10, textBlock.length)
                     .trim();
                     textBlock = textBlock.substring(0, distractIndex + 9);
+                } else if (textBlock.includes("#grouped:")) {
+                    // Parse grouped distractor identifier
+                    distractIndex = textBlock.indexOf("#grouped:");
+                    var groupedGroup = textBlock
+                    .substring(distractIndex + 9, textBlock.length)
+                    .trim();
+                    textBlock = textBlock.substring(0, distractIndex + 8);
             } else if (textBlock.includes("#tag:")) {
                 textBlock = textBlock.replace(/#tag:.*;.*;/, (s) =>
                     s.replace(/\s+/g, "")
@@ -348,10 +355,10 @@ export default class Parsons extends RunestoneBase {
                 options["displaymath"] = false;
             }
             textBlock = textBlock.replace(
-                /\s*#(paired|distractor|pick-one|tag:.*;.*;)\s*/g,
+                /\s*#(paired|distractor|pick-one|grouped|tag:.*;.*;)\s*/g,
                 function (mystring, arg1) {
-                    options[arg1] = true;
-                    return "";
+                options[arg1] = true;
+                return "";
                 }
             );
             // Create lines
@@ -379,10 +386,16 @@ export default class Parsons extends RunestoneBase {
                         line.distractor = true;
                         line.paired = false;
                         line.distractHelptext = distractHelptext;
-                        } else if (options["pick-one"]) {
+                    } else if (options["pick-one"]) {
                         line.distractor = true;
                         line.paired = false;
                         line.pickOneGroup = pickOneGroup; // Store group identifier
+                        line.distractHelptext = distractHelptext;
+                    } else if (options["grouped"]) {
+                        line.distractor = true; // You'll need to determine if this specific line is a distractor or correct
+                        line.paired = false;
+                        line.grouped = true;
+                        line.groupedGroup = groupedGroup;
                         line.distractHelptext = distractHelptext;
                     } else {
                         line.distractor = false;
@@ -1065,8 +1078,8 @@ export default class Parsons extends RunestoneBase {
         return combinedOutput;
     }
 
-    // Return an array of code blocks based on what is specified in the problem
-    blocksFromSource() {
+ // Return an array of code blocks based on what is specified in the problem
+blocksFromSource() {
     var unorderedBlocks = [];
     var originalBlocks = [];
     var blocks = [];
@@ -1156,6 +1169,65 @@ export default class Parsons extends RunestoneBase {
     
     // Update unorderedBlocks to remove the unselected pick-one distractors
     if (Object.keys(pickOneGroups).length > 0) {
+        blocks = [];
+        for (i = 0; i < unorderedBlocks.length; i++) {
+            if ($.inArray(i, removedBlocks) < 0) {
+                blocks.push(unorderedBlocks[i]);
+            }
+        }
+        unorderedBlocks = blocks;
+        blocks = [];
+    }
+
+    // Handle grouped distractors
+    var groupedGroups = {};
+
+    // Group blocks by their groupedGroup identifier
+    for (i = 0; i < unorderedBlocks.length; i++) {
+        block = unorderedBlocks[i];
+        if (block.lines[0].grouped && block.lines[0].groupedGroup) {
+            var groupId = block.lines[0].groupedGroup;
+            if (!groupedGroups[groupId]) {
+                groupedGroups[groupId] = [];
+            }
+            groupedGroups[groupId].push(block);
+        }
+    }
+
+    // For each grouped group, select which distractors to keep
+    for (var groupId in groupedGroups) {
+        var group = groupedGroups[groupId];
+        if (group.length > 1) {
+            // Separate correct blocks from distractors
+            var correctBlocks = [];
+            var distractorBlocks = [];
+            
+            for (var j = 0; j < group.length; j++) {
+                if (group[j].lines[0].distractor) {
+                    distractorBlocks.push(group[j]);
+                } else {
+                    correctBlocks.push(group[j]);
+                }
+            }
+            
+            // Keep all correct blocks, randomly select some distractors
+            var numDistractorsToKeep = Math.min(2, distractorBlocks.length);
+            var selectedDistractors = this.shuffled(distractorBlocks).slice(0, numDistractorsToKeep);
+            
+            // Mark unselected distractors for removal
+            for (var j = 0; j < distractorBlocks.length; j++) {
+                if (selectedDistractors.indexOf(distractorBlocks[j]) === -1) {
+                    var blockIndex = unorderedBlocks.indexOf(distractorBlocks[j]);
+                    if (blockIndex > -1) {
+                        removedBlocks.push(blockIndex);
+                    }
+                }
+            }
+        }
+    }
+
+    // Update unorderedBlocks to remove the unselected grouped distractors
+    if (Object.keys(groupedGroups).length > 0) {
         blocks = [];
         for (i = 0; i < unorderedBlocks.length; i++) {
             if ($.inArray(i, removedBlocks) < 0) {
