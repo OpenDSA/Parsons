@@ -225,30 +225,34 @@ function injectFromPIF(pifJson, $) {
 }
 
 function lineWithTagAndDependencies(hasDefinedGraph,currentBlock, tags) {
-    if (currentBlock.depends === '-1')
-        return currentBlock.text + " #distractor"
+
+    const level = Number.parseInt(currentBlock.indent, 10) || 0;
+    const pad = ' '.repeat(level * 4); // 4 spaces per indent level
+    const base = pad + currentBlock.text;
+    if (currentBlock.depends === '-1') {
+        return base + " #distractor";
+      }
+
 
     if (hasDefinedGraph) {
-        const tagIndex = tags.indexOf(currentBlock.tag)
-        let depString = ""
-        //Get Dependencies
+        const tagIndex = tags.indexOf(currentBlock.tag);
+        let depString = "";
+
         if (typeof currentBlock.depends === "string") {
-            const depIndex = tags.indexOf(currentBlock.depends)
-            depString = depIndex === -1 ? "" : " " + depIndex
+            const depIndex = tags.indexOf(currentBlock.depends);
+            depString = depIndex === -1 ? "" : " " + depIndex;
         } else {
-            //Handle multiple deps
-            const depIndexes = currentBlock.depends
-                .map(dep => tags.indexOf(dep))
-            depString = depIndexes
-                .reduce((acc, curr, idx) =>
-                    acc.concat(curr, idx === depIndexes.length - 1 ? "" : ",")
-                    , " ")
+            const depIndexes = (currentBlock.depends || []).map(dep => tags.indexOf(dep));
+            depString = depIndexes.reduce(
+                (acc, curr, idx) => acc.concat(curr, idx === depIndexes.length - 1 ? "" : ","),
+                " "
+            );
         }
 
-        return currentBlock.text
-            .concat(" #tag:" + tagIndex + "; depends:" + depString + ";")
+        return base.concat(" #tag:" + tagIndex + "; depends:" + depString + ";");
     }
-    return currentBlock.text
+
+    return base;
 }
 
 module.exports = {
