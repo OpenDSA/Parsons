@@ -39,8 +39,9 @@ const PORT = process.env.PORT || 3000;
 
 const STATE = {}
 
-app.use(express.static(path.resolve(__dirname, '../public')));
+
 app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
+app.use('/dist', express.static(path.resolve(__dirname, '../dist')));
 app.use('/css', express.static(path.resolve(__dirname, '../src/css')));
 
 //Upload exercise directly to server
@@ -86,6 +87,60 @@ app.delete('/parsons/delete/:filename', (req, res) => {
 app.get('/parsons/bundle.js', (req, res) => {
     res.sendFile(path.join(__dirname, '../public', 'bundle.js'));
 })
+
+// Serve all assets from dist folder
+app.get('/parsons/dist/:filename', (req, res) => {
+    const filePath = req.params.filename; // Get everything after /parsons/dist/
+    const fullPath = path.join(__dirname, '../dist', filePath);
+    
+    // Security check: ensure the file is in the dist directory
+    const distPath = path.resolve(__dirname, '../dist');
+    if (!fullPath.startsWith(distPath)) {
+        return res.status(400).send('Invalid file path');
+    }
+    
+    res.sendFile(fullPath, (err) => {
+        if (err) {
+            console.error('Error serving dist file:', err);
+            res.status(404).send('File not found');
+        }
+    });
+})
+
+// Get HTML tags for all dist files (scripts and assets)
+app.get('/parsons/dist-assets', (req, res) => {
+    try {
+        const distPath = path.join(__dirname, '../dist');
+        const files = fs.readdirSync(distPath);
+        
+        const jsFiles = files.filter(file => file.endsWith('.js'));
+        const svgFiles = files.filter(file => file.endsWith('.svg'));
+        const cssFiles = files.filter(file => file.endsWith('.css'));
+        
+        let html = '';
+        
+        // Add CSS files
+        cssFiles.forEach(file => {
+            html += `<link rel="stylesheet" href="/parsons/dist/${file}">\n`;
+        });
+        
+        // Add JavaScript files
+        jsFiles.forEach(file => {
+            html += `<script src="/parsons/dist/${file}"></script>\n`;
+        });
+        
+        // Add SVG files as preload links for better performance
+        svgFiles.forEach(file => {
+            html += `<link rel="preload" href="/parsons/dist/${file}" as="image" type="image/svg+xml">\n`;
+        });
+        
+        res.setHeader('Content-Type', 'text/html');
+        res.send(html);
+    } catch (error) {
+        console.error('Error getting dist assets:', error);
+        res.status(500).send('Error loading assets');
+    }
+});
 
 // Get all available files
 app.get('/parsons/api/files', async (req, res) => {

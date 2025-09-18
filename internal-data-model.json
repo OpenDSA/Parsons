@@ -1,0 +1,70 @@
+{
+  "question": "The following program traverses a list of numbers. Rearrange the code blocks to print the sum of the numbers in the list.",
+  "useRunestoneServices": true,
+  "divid": "my-parsons-problem",
+  "adaptive": false,
+  "maxdist": 2,
+  "grader": "line",
+  "language": "python",
+  "runnable": true,
+  "noindent": false,
+  "numbered": "l",
+  "blocks": [
+    {
+      "code": "my_list = [1, 5, 2, 4]",
+      "distractor": false,
+      "paired": false,
+      "distractHelptext": "",
+      "tag": "block-1",
+      "depends": []
+    },
+    {
+      "code": "total = 0",
+      "distractor": false,
+      "paired": false,
+      "distractHelptext": "",
+      "tag": "block-2",
+      "depends": []
+    },
+    {
+      "code": "for number in my_list:",
+      "distractor": false,
+      "paired": false,
+      "distractHelptext": "",
+      "tag": "block-3",
+      "depends": []
+    },
+    {
+      "code": "    total = total + number",
+      "distractor": false,
+      "paired": false,
+      "distractHelptext": "",
+      "tag": "block-4",
+      "depends": []
+    },
+    {
+      "code": "print(total)",
+      "distractor": false,
+      "paired": false,
+      "distractHelptext": "",
+      "tag": "block-5",
+      "depends": []
+    },
+    {
+      "code": "print(number)",
+      "distractor": true,
+      "paired": false,
+      "distractHelptext": "This block is not needed.",
+      "tag": "",
+      "depends": []
+    }
+  ],
+  "solution": [
+    "block-1",
+    "block-2",
+    "block-3",
+    "block-4",
+    "block-5"
+  ],
+  "order": [0, 1, 2, 3, 4, 5]
+}
