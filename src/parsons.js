@@ -21,18 +21,17 @@
 ===================================================================== */
 "use strict";
 
-// import RunestoneBase from "./runestonebase.js";
-const RunestoneBase = require('./runestonebase')
+import RunestoneBase from "./runestonebase.js";
 require("./parsons-i18n.en.js");
 require("./parsons-i18n.pt-br.js");
 require("./prettify.js");
 require("./css/parsons.css");
 require("./css/prettify.css");
 require("./css/index.css");
-const LineBasedGrader = require("./lineGrader.js");
-const DAGGrader = require("./dagGrader.js");
-const ParsonsLine = require("./parsonsLine.js");
-const ParsonsBlock = require("./parsonsBlock.js");
+import LineBasedGrader from "./lineGrader.js";
+import DAGGrader from "./dagGrader.js";
+import ParsonsLine from "./parsonsLine.js";
+import ParsonsBlock from "./parsonsBlock.js";
 // import {injectHTML, loadFile, renderAll} from "./helpers";
 
 /* =====================================================================

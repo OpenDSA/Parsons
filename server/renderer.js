@@ -232,7 +232,13 @@ const parsonsPageTemplate = `
         }
     };
 </script>
-  <script src="/parsons/bundle.js"></script>
+  <script src="/parsons/dist/parsons.js"></script>
+  <script>
+fetch('/parsons/dist-assets')
+  .then(response => response.text())
+  .then(html => document.head.insertAdjacentHTML('beforeend', html))
+  .catch(error => console.error('Error loading dist assets:', error));
+</script>
 </head>
 <body></body></html>
 `
