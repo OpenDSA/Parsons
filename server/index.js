@@ -42,6 +42,7 @@ const STATE = {}
 
 app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
 app.use('/dist', express.static(path.resolve(__dirname, '../dist')));
+app.use('/css', express.static(path.resolve(__dirname, '../src/css')));
 
 //Upload exercise directly to server
 app.post('/parsons/upload', upload.single('file'), (req, res) => {
