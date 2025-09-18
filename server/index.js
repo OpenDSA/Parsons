@@ -172,8 +172,8 @@ app.get('/parsons/pif/:source/:filename', async (req, res) => {
 
         const result = await parsePIF(source, filename);
         parsedJson = result.body;
-        // logEvent(`Parsed PIF file ${filename} successfully`);
-        // console.log(JSON.stringify(parsedJson))
+        //logEvent(`Parsed PIF file ${filename} successfully`);
+        //console.log(JSON.stringify(parsedJson))
     } catch (e) {
         console.error("Failed to parse PIF file:", e);
         error = e;
