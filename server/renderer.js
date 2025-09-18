@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const {getAllAvailableFiles} = require('./helpers/pifParsingHelpers');
 
+
 async function renderPage(req, state) {
     const template = fs.readFileSync(path.resolve(__dirname, 'template.html'), 'utf-8');
 
@@ -125,8 +126,8 @@ const parsonsPageTemplate = `
 <!DOCTYPE html>
 <html>
 <head>
-<link rel="stylesheet" type="type/css" href="./css/parsons.css"/>
-  <link rel="stylesheet" type="type/css" href="./css/index.css"/>
+<link rel="stylesheet" type="text/css" href="/css/parsons.css"/>
+  <link rel="stylesheet" type="text/css" href="/css/index.css"/>
    <script type="text/javascript">
     if (typeof eBookConfig === "undefined") {
         eBookConfig = {};

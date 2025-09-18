@@ -224,31 +224,56 @@ function injectFromPIF(pifJson, $) {
     return $parsonsShell;
 }
 
-function lineWithTagAndDependencies(hasDefinedGraph,currentBlock, tags) {
-    if (currentBlock.depends === '-1')
-        return currentBlock.text + " #distractor"
+function lineWithTagAndDependencies(hasDefinedGraph, currentBlock, tags) {
+
+    // Derive padding from PIF `indent`, which may be:
+    // - a number of levels, a number of spaces, or a raw whitespace string.
+    const indentVal = currentBlock && currentBlock.indent;
+    let pad = "";
+    if (typeof indentVal === "string") {
+        const iv = indentVal;
+        if (/^\s+$/.test(iv)) {
+            // Raw whitespace provided – preserve verbatim
+            pad = iv;
+        } else if (/^\d+$/.test(iv.trim())) {
+            // Numeric string – treat as indent levels (4 spaces per level)
+            const n = parseInt(iv.trim(), 10);
+            pad = " ".repeat(Math.max(0, n * 4));
+        }
+    } else if (Number.isFinite(indentVal)) {
+        const n = indentVal;
+        // Heuristic: if large number, assume spaces; otherwise levels (4 spaces per level)
+        pad = " ".repeat(Math.max(0, n > 10 ? n : n * 4));
+    }
+
+    const originalText = String((currentBlock && currentBlock.text) || "");
+    // Avoid double-indenting only when we are adding padding
+    const text = pad ? originalText.replace(/^\s+/, "") : originalText;
+    const base = pad + text;
+
+    if (currentBlock.depends === "-1") {
+        return base + " #distractor";
+    }
 
     if (hasDefinedGraph) {
-        const tagIndex = tags.indexOf(currentBlock.tag)
-        let depString = ""
-        //Get Dependencies
+        const tagIndex = tags.indexOf(currentBlock.tag);
+        let depString = "";
+
         if (typeof currentBlock.depends === "string") {
-            const depIndex = tags.indexOf(currentBlock.depends)
-            depString = depIndex === -1 ? "" : " " + depIndex
+            const depIndex = tags.indexOf(currentBlock.depends);
+            depString = depIndex === -1 ? "" : " " + depIndex;
         } else {
-            //Handle multiple deps
-            const depIndexes = currentBlock.depends
-                .map(dep => tags.indexOf(dep))
-            depString = depIndexes
-                .reduce((acc, curr, idx) =>
-                    acc.concat(curr, idx === depIndexes.length - 1 ? "" : ",")
-                    , " ")
+            const depIndexes = (currentBlock.depends || []).map(dep => tags.indexOf(dep)).filter(i => i !== -1);
+            depString = depIndexes.reduce(
+                (acc, curr, idx) => acc.concat(curr, idx === depIndexes.length - 1 ? "" : ","),
+                " "
+            );
         }
 
-        return currentBlock.text
-            .concat(" #tag:" + tagIndex + "; depends:" + depString + ";")
+        return base.concat(" #tag:" + tagIndex + "; depends:" + depString + ";");
     }
-    return currentBlock.text
+
+    return base;
 }
 
 module.exports = {

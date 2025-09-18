@@ -41,6 +41,7 @@ const STATE = {}
 
 app.use(express.static(path.resolve(__dirname, '../public')));
 app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
+app.use('/css', express.static(path.resolve(__dirname, '../src/css')));
 
 //Upload exercise directly to server
 app.post('/parsons/upload', upload.single('file'), (req, res) => {
@@ -117,8 +118,8 @@ app.get('/parsons/pif/:source/:filename', async (req, res) => {
 
         const result = await parsePIF(source, filename);
         parsedJson = result.body;
-        // logEvent(`Parsed PIF file ${filename} successfully`);
-        // console.log(JSON.stringify(parsedJson))
+        //logEvent(`Parsed PIF file ${filename} successfully`);
+        //console.log(JSON.stringify(parsedJson))
     } catch (e) {
         console.error("Failed to parse PIF file:", e);
         error = e;
