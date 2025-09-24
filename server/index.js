@@ -175,10 +175,12 @@ app.get('/parsons/pif/:source/:filename', async (req, res) => {
         parsedJson = result.body;
         //logEvent(`Parsed PIF file ${filename} successfully`);
         //console.log(JSON.stringify(parsedJson))
+        //res.send(parsedJson);
     } catch (e) {
         console.error("Failed to parse PIF file:", e);
         error = e;
     }
+
 
     const dom = new JSDOM(parsonsPageTemplate);
     const window = dom.window;
