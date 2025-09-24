@@ -1,4 +1,13 @@
 {
+
+
+// PIF -> JSON-> HTML-> INJECTED DOM -> RENDERED TO THE PAGE
+// pif -> JSON -> CLIENT SHOULD build the problem // MAKE THE CLIENT UNDERSTAND HOW THE JSON WORKS AND THEN RENDER THE INFORMATION
+
+// I WOULD NEED HOW THE JSON CURRENTLY LOOKS, HOW THE PIF LOOKS,
+
+// 
+
   "question": "The following program traverses a list of numbers. Rearrange the code blocks to print the sum of the numbers in the list.",
   "useRunestoneServices": true,
   "divid": "my-parsons-problem",
