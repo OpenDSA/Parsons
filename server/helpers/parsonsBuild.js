@@ -194,6 +194,18 @@ function injectFromPIF(pifJson, $) {
         }
     })
 
+    let gradeType = $problemDiv.attr("data-grader");
+    let isReusable = false;
+    for (const block of pifJson.blocks) {
+        if (block && (block.reusable === true || block.reusable === "true")) {
+            isReusable = true;
+        }
+    }
+
+    if (isReusable && gradeType !== "execute") {
+        throw new Error("Cannot use reusable blocks unless using execute grading");
+    }
+
 
     //ADDING QUESTION INSTRUCTION
     $questionDiv.empty().append($("<p>").append
@@ -250,6 +262,10 @@ function lineWithTagAndDependencies(hasDefinedGraph, currentBlock, tags) {
     // Avoid double-indenting only when we are adding padding
     const text = pad ? originalText.replace(/^\s+/, "") : originalText;
     const base = pad + text;
+
+    if (currentBlock.reusable) {
+        return base + " #reusable";
+    }
 
     if (currentBlock.depends === "-1") {
         return base + " #distractor";

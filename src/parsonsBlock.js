@@ -114,13 +114,18 @@ export default class ParsonsBlock {
         if ($(block.view).attr("tabindex") == "0") {
             this.makeTabIndex();
         }
-        $(block.view).detach();
-        var newBlocks = [];
-        for (let i = 0; i < this.problem.blocks.length; i++) {
-            if (this.problem.blocks[i] !== block) {
-                newBlocks.push(this.problem.blocks[i]);
+
+        if (!this.isReusable()) {
+            $(block.view).detach();
+        
+            var newBlocks = [];
+            for (let i = 0; i < this.problem.blocks.length; i++) {
+                if (this.problem.blocks[i] !== block) {
+                    newBlocks.push(this.problem.blocks[i]);
+                }
             }
         }
+
         for (let i = 0; i < block.labels.length; i++) {
             this.addLabel(
                 block.labels[i][0],
@@ -205,6 +210,13 @@ export default class ParsonsBlock {
     // Return a boolean as to whether this block is a distractor
     isDistractor() {
         return this.lines[0].distractor;
+    }
+    // Return a boolean as to whether this block is able to be reused
+    isReusable() {
+        if ($(this.problem.view).data("grader") !== "execute") {
+            throw new Error("Cannot use reusable blocks unless using execute grading");
+        }
+        return this.lines[0].reusable && $(this.problem.view).data("grader") === "execute";
     }
     // Return a boolean as to whether this block is in the source area
     inSourceArea() {
