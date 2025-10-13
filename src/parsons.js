@@ -24,7 +24,6 @@
 import RunestoneBase from "./runestonebase.js";
 require("./parsons-i18n.en.js");
 require("./parsons-i18n.pt-br.js");
-console.log('i18n files loaded, checking jQuery.i18n:', typeof $?.i18n);
 require("./prettify.js");
 require("./css/parsons.css");
 require("./css/prettify.css");
@@ -130,23 +129,6 @@ export default class Parsons extends RunestoneBase {
             Prism.highlightAllUnder(this.containerDiv);
         }
         this.runnableDiv = null;
-    }
-
-    // Create minimal container for PIF mode
-    createMinimalContainer() {
-        const div = document.createElement('div');
-        div.id = this.divid;
-        div.className = 'parsons';
-        div.setAttribute('data-component', 'parsons');
-        
-        // Create question div from PIF JSON
-        const questionDiv = document.createElement('div');
-        questionDiv.className = 'parsons_question parsons-text';
-        questionDiv.innerHTML = this.pifData.question_text || "";
-        div.appendChild(questionDiv);
-        this.question = questionDiv;
-        
-        return div;
     }
 
     initializeOptionsFromPIF()
@@ -291,12 +273,8 @@ export default class Parsons extends RunestoneBase {
         
         if (!Array.isArray(pifBlocks) || pifBlocks.length === 0) {
             console.warn('No valid blocks found in PIF data');
-            console.log('pifData.blocks:', this.pifData?.blocks);
-            console.log('pifData.value?.blocks:', this.pifData?.value?.blocks);
             return;
         }
-        
-        console.log('Found', pifBlocks.length, 'blocks to process');
         
         var solution = [];
         var indents = [];
@@ -452,8 +430,6 @@ export default class Parsons extends RunestoneBase {
         var that = this;
         this.checkButton = document.createElement("button");
         $(this.checkButton).attr("class", "btn btn-success");
-        console.log('i18n debug - $.i18n available:', typeof $.i18n);
-        console.log('i18n debug - check message:', $.i18n ? $.i18n("msg_parson_check_me") : 'no $.i18n');
         this.checkButton.textContent = ($.i18n && $.i18n("msg_parson_check_me") !== "msg_parson_check_me") 
             ? $.i18n("msg_parson_check_me") : "Check Me";
         this.checkButton.id = this.counterId + "-check";
@@ -467,7 +443,6 @@ export default class Parsons extends RunestoneBase {
         });
         this.resetButton = document.createElement("button");
         $(this.resetButton).attr("class", "btn btn-default");
-        console.log('i18n debug - reset message:', $.i18n ? $.i18n("msg_parson_reset") : 'no $.i18n');
         this.resetButton.textContent = ($.i18n && $.i18n("msg_parson_reset") !== "msg_parson_reset") 
             ? $.i18n("msg_parson_reset") : "Reset";
         this.resetButton.id = this.counterId + "-reset";
@@ -2438,7 +2413,7 @@ export default class Parsons extends RunestoneBase {
     async disableInteraction() {
         // Disable blocks
         await this.checkServerComplete;
-        console.log("disabling blocks");
+
         if (this.blocks !== undefined) {
             for (var i = 0; i < this.blocks.length; i++) {
                 var block = this.blocks[i];
@@ -2909,7 +2884,7 @@ Parsons.counter = 0;
 
 $(document).ready(function () {
 
-    console.log("ebei")
+
 
     $("[data-component=parsons]").each(function (index) {
         try {

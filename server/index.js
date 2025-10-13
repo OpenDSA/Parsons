@@ -88,7 +88,7 @@ app.get('/parsons/bundle.js', (req, res) => {
     res.sendFile(path.join(__dirname, '../public', 'bundle.js'));
 })
 
-// i18n files are bundled into webpack build - no need for separate route
+
 
 // Serve all assets from dist folder
 app.get('/parsons/dist/:filename', (req, res) => {
@@ -223,126 +223,98 @@ app.get('/parsons/pif/:source/:filename', async (req, res) => {
     res.send(dom.serialize());
 });
 
-// Test route for PIF JSON direct feeding (Math version)
-app.get('/parsons/test-json', (req, res) => {
+//Parse PIF file and serve with client-side JSON implementation (no server-side HTML generation)
+app.get('/parsons/pifjson/:source/:filename', async (req, res) => {
+    const filename = req.params.filename;
+    const source = req.params.source;
+    //When set to false, the page will not show the instructions for the problem.
+    const showNoPrompt = req.query.prompt === "false";
+    //When set to true, the page is has no back to home button. Ideal for embedding in other pages
+    const isolatedExercise = req.query.isolated === "true";
+    let parsedJson = null;
+    let error = null;
+
     try {
-        // Load the fixed-demo.json file
-        const pifJsonPath = path.join(__dirname, '../downloads/fixed-demo.json');
-        const pifJsonData = JSON.parse(fs.readFileSync(pifJsonPath, 'utf8'));
+        if (source === 'github') {
+            await downloadFile(filename);
+        }
 
-        // Create HTML page that uses PIF JSON directly
-        const html = createTestPage(pifJsonData, 'Testing PIF JSON Direct Feed (Math)');
-        res.send(html);
-    } catch (error) {
-        console.error('Error in test-json route:', error);
-        res.status(500).send('Error loading PIF JSON test page');
+        const result = await parsePIF(source, filename);
+        parsedJson = result.body;
+        logEvent(`Parsed PIF file ${filename} successfully for JSON implementation`);
+    } catch (e) {
+        console.error("Failed to parse PIF file:", e);
+        error = e;
     }
-});
 
-// Test route for PIF JSON direct feeding (Python version)  
-app.get('/parsons/test-python', (req, res) => {
-    try {
-        // Load the 2nd.json file
-        const pifJsonPath = path.join(__dirname, '../downloads/2nd.json');
-        const pifJsonData = JSON.parse(fs.readFileSync(pifJsonPath, 'utf8'));
-        
-        // Create HTML page that uses PIF JSON directly
-        const html = createTestPage(pifJsonData, 'Testing PIF JSON Direct Feed (Python)');
-        res.send(html);
-    } catch (error) {
-        console.error('Error in test-python route:', error);
-        res.status(500).send('Error loading Python PIF JSON test page');
-    }
-});
+    const dom = new JSDOM(parsonsPageTemplate);
+    const window = dom.window;
+    const $ = jqueryFactory(window);
 
-// Test route for Java indentation example
-app.get('/parsons/test-indent', (req, res) => {
-    try {
-        // Load the indent.json file
-        const pifJsonPath = path.join(__dirname, '../downloads/indent.json');
-        const pifJsonData = JSON.parse(fs.readFileSync(pifJsonPath, 'utf8'));
+    if (error) {
+        // Handle file not found or parsing errors gracefully
+        const errorMessage = error.message.includes('ENOENT') || error.message.includes('not found') 
+            ? `File "${filename}" not found in ${source === 'github' ? 'GitHub repository' : 'uploads'}.`
+            : `Error parsing file "${filename}": ${error.message}`;
         
-        // Create HTML page that uses PIF JSON directly
-        const html = createTestPage(pifJsonData, 'Testing Java Indentation Example');
-        res.send(html);
-    } catch (error) {
-        console.error('Error in test-indent route:', error);
-        res.status(500).send('Error loading Java indentation test page');
-    }
-});
-
-function createTestPage(pifJsonData, title) {
-    return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Test PIF JSON Direct</title>
-        <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-        <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
-        <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/ui-lightness/jquery-ui.css">
+        const backToHomeButton = isolatedExercise ? '' : `<p><a href="/parsons/" style="color: #721c24; text-decoration: underline;">← Back to Home</a></p>`;
         
-        <!-- Load jQuery i18n plugin before Parsons -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.i18n/1.0.9/jquery.i18n.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.i18n/1.0.9/jquery.i18n.messagestore.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.i18n/1.0.9/jquery.i18n.parser.min.js"></script>
-        
-        <script>
-            // Mock eBookConfig for standalone mode
-            window.eBookConfig = {
-                locale: 'en',
-                language: 'python',
-                isPlaygroundEnv: false,
-                course: 'test-course',
-                basecourse: 'test-basecourse',
-                user: 'test-user',
-                isLoggedIn: false,
-                useRunestoneServices: false,
-                logLevel: 0,
-                debug: false
-            };
-        </script>
-        
-        <!-- Load Parsons (i18n is bundled) -->
-        <script src="/dist/parsons.js"></script>
-        <link rel="stylesheet" href="/css/parsons.css">
-        <link rel="stylesheet" href="/css/index.css">
-        
-
-    </head>
-    <body>
-        <h1>${title}</h1>
-        <div id="test-container"></div>
-        
-        <script>
-            // PIF JSON data
-            const pifData = ${JSON.stringify(pifJsonData)};
-            
-            console.log('PIF Data:', pifData);
-            
-            // Create Parsons instance directly from JSON
-            try {
-                const parsons = new Parsons({
-                    pifJson: pifData,
-                    divid: "test-parsons-json",
-                    useRunestoneServices: false
+        $('body').append(`
+            <div style="padding: 20px; margin: 20px; border: 1px solid #dc3545; border-radius: 5px; background-color: #f8d7da; color: #721c24;">
+                <h2 style="color: #721c24; margin-top: 0;">File Not Found</h2>
+                <p>${errorMessage}</p>
+                ${backToHomeButton}
+            </div>
+        `);
+    } else {
+        // Client-side JSON implementation - NO injectFromPIF()
+        $('body').append(`
+            <div id="parsons-container" class="parsons" data-component="parsons">
+                <div class="parsons_question parsons-text">
+                    <p>${parsedJson.value.question_text || 'Please arrange the code blocks correctly.'}</p>
+                </div>
+            </div>
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    // Client builds Parsons from JSON
+                    try {
+                        new Parsons({
+                            orig: document.getElementById('parsons-container'),
+                            pifJson: ${JSON.stringify(parsedJson)},
+                            divid: 'parsons-container',
+                            useRunestoneServices: false
+                        });
+                        
+                        // Hide prompt if requested
+                        ${showNoPrompt ? `
+                        setTimeout(function() {
+                            const parsonsText = document.querySelector('.parsons-text, .parsons_question');
+                            if (parsonsText) {
+                                parsonsText.style.display = 'none';
+                            }
+                        }, 100);
+                        ` : ''}
+                    } catch (error) {
+                        console.error('Error initializing Parsons:', error);
+                        document.getElementById('parsons-container').innerHTML = 
+                            '<div style="color: red; padding: 20px;">Error loading Parsons exercise: ' + error.message + '</div>';
+                    }
                 });
-                
-                console.log('Parsons instance created:', parsons);
-                
-                // Append to container
-                document.getElementById('test-container').appendChild(parsons.containerDiv[0]);
-                
-            } catch (error) {
-                console.error('Error creating Parsons:', error);
-                document.getElementById('test-container').innerHTML = 
-                    '<p style="color: red;">Error: ' + error.message + '</p>';
-            }
-        </script>
-    </body>
-    </html>`;
-}
+            </script>
+        `);
 
-        
+        // Add back to home button for successful exercises (unless isolated)
+        if (!isolatedExercise) {
+            $('body').append(`
+                <div style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
+                    <a href="/parsons/" style="display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">← Back to Home</a>
+                </div>
+            `);
+        }
+    }
+
+    res.send(dom.serialize());
+});
 
 // Home page - list available files and upload option
 app.get('/parsons/', async (req, res) => {
