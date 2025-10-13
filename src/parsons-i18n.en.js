@@ -1,5 +1,7 @@
-$.i18n().load({
-    en: {
+// Only load i18n if the plugin is available
+if (typeof $ !== 'undefined' && $.i18n) {
+    $.i18n().load({
+        en: {
         msg_parson_check_me: "Check",
         msg_parson_reset: "Reset",
         msg_parson_help: "Help me",
@@ -36,3 +38,4 @@ $.i18n().load({
         msg_parson_will_provide_indent: "Will provide indentation",
     },
 });
+}

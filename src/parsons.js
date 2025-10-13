@@ -24,6 +24,7 @@
 import RunestoneBase from "./runestonebase.js";
 require("./parsons-i18n.en.js");
 require("./parsons-i18n.pt-br.js");
+console.log('i18n files loaded, checking jQuery.i18n:', typeof $?.i18n);
 require("./prettify.js");
 require("./css/parsons.css");
 require("./css/prettify.css");
@@ -56,46 +57,163 @@ import ParsonsBlock from "./parsonsBlock.js";
 export default class Parsons extends RunestoneBase {
     constructor(opts) {
         super(opts);
-        var orig = opts.orig; // entire <pre> element that will be replaced by new HTML
-        // var orig = opts.orig; // entire <pre> element that will be replaced by new HTML
-        this.containerDiv = orig;
-        this.origElem = $(orig).find("pre.parsonsblocks")[0];
-        // Find the question text and store it in .question
-        this.question = $(orig).find(`.parsons_question`)[0];
+        
+        // Determine mode: PIF JSON vs HTML
+        if (opts.pifJson) {
+            // NEW: PIF JSON mode
+            this.pifMode = true;
+            this.pifData = opts.pifJson.value; // Note: accessing .value from your JSON structure
+            this.containerDiv = $(opts.orig || this.createMinimalContainer());
+            this.origElem = null; // No HTML source
+            this.question = null; // Will create from JSON
+            this.divid = opts.divid || "parsons-" + Date.now();
+        } else {
+            // EXISTING: HTML mode
+            this.pifMode = false;
+            var orig = opts.orig;
+            this.containerDiv = orig;
+            this.origElem = $(orig).find("pre.parsonsblocks")[0];
+            this.question = $(orig).find(`.parsons_question`)[0];
+            this.divid = opts.orig.id;
+        }
+        
+        // Common initialization
         this.useRunestoneServices = opts.useRunestoneServices;
-        this.divid = opts.orig.id;
-        // Set the storageId (key for storing data)
         var storageId = super.localStorageKey();
         this.storageId = storageId;
-        this.children = this.origElem.childNodes; // this contains all of the child elements of the entire tag...
+        this.children = this.pifMode ? [] : this.origElem.childNodes;
         this.contentArray = [];
         Parsons.counter++; //    Unique identifier
         this.counterId = "parsons-" + Parsons.counter;
 
-        this.initializeOptions();
+        // Initialize options (mode-specific)
+        if (this.pifMode) {
+            this.initializeOptionsFromPIF();
+        } else {
+            this.initializeOptions();
+        }
+        
         this.grader =
             this.options.grader === "dag"
                 ? new DAGGrader(this)
                 : new LineBasedGrader(this);
         this.grader.showfeedback = this.showfeedback;
-        var fulltext = $(this.origElem).html();
+        
         this.blockIndex = 0;
         this.checkCount = 0;
         this.numDistinct = 0;
         this.hasSolved = false;
-        this.initializeLines(fulltext.trim());
+        
+        // Initialize lines (mode-specific)
+        if (this.pifMode) {
+            this.initializeLinesFromPIF();
+        } else {
+            var fulltext = $(this.origElem).html();
+            this.initializeLines(fulltext.trim());
+        }
+        
         this.initializeView();
         //Note: caption removed intentionally. Was previously set to "Parsons" in rs
         this.caption = "";
         this.addCaption("runestone");
-        // Check the server for an answer to complete things
-        this.checkServer("parsons", true);
+        
+        // Initialize blocks for PIF mode or check server for regular mode
+        if (this.pifMode) {
+            // Initialize blocks directly in PIF mode
+            this.initializeAreas(this.blocksFromSource(), [], {});
+            this.initializeInteractivity();
+        } else {
+            // Check the server for an answer to complete things
+            this.checkServer("parsons", true);
+        }
         if (typeof Prism !== "undefined") {
             Prism.highlightAllUnder(this.containerDiv);
         }
         this.runnableDiv = null;
     }
 
+    // Create minimal container for PIF mode
+    createMinimalContainer() {
+        const div = document.createElement('div');
+        div.id = this.divid;
+        div.className = 'parsons';
+        div.setAttribute('data-component', 'parsons');
+        
+        // Create question div from PIF JSON
+        const questionDiv = document.createElement('div');
+        questionDiv.className = 'parsons_question parsons-text';
+        questionDiv.innerHTML = this.pifData.question_text || "";
+        div.appendChild(questionDiv);
+        this.question = questionDiv;
+        
+        return div;
+    }
+
+    initializeOptionsFromPIF()
+    {
+        var options = {
+            pixelsPerIndent: 30,
+        };
+
+        // Parse the JSON and extract relevant options
+        if (!this.pifData || !this.pifData.options) {
+            console.warn("Invalid PIF JSON data, using defaults");
+            this.options = options; // Set default options if JSON is invalid
+            return;
+        }   
+        const pifOptions = this.pifData.options;
+
+        if (pifOptions.grader) {
+            if (typeof pifOptions.grader === 'object') {
+                options.grader = pifOptions.grader.type || "line";
+                // Note: showFeedback is handled elsewhere in the system
+            } else {
+                options.grader = pifOptions.grader;
+            }
+        } else {
+            options.grader = "line"; // default
+        }
+        options.maxdist = pifOptions.maxdist || 0;
+        options.order = pifOptions.order || undefined;
+        options.noindent = !pifOptions.indent; // Note: PIF uses 'indent', Parsons uses 'noindent'
+        options.adaptive = pifOptions.adaptive || false;
+        options.numbered = pifOptions.numbered || false;
+        options.language = pifOptions.language || "none";
+        options.runnable = pifOptions.runnable || false;
+
+            // Extract blocks
+        if (options.order && typeof options.order === 'string' && options.order.trim()) {
+        const orderArray = options.order.match(/\d+/g);
+        if (orderArray) {
+            options.order = orderArray.map(x => parseInt(x));
+        }
+    }
+        var prettifyLanguage = {
+            python: "prettyprint lang-py",
+            java: "prettyprint lang-java",
+            javascript: "prettyprint lang-js",
+            html: "prettyprint lang-html",
+            c: "prettyprint lang-c",
+            "c++": "prettyprint lang-cpp",
+            cpp: "prettyprint lang-cpp",
+            ruby: "prettyprint lang-rb",
+            math: "", // No prettify for math
+            natural: "" // No prettify for natural language
+        }[options.language] || "";
+    
+    options.prettifyLanguage = prettifyLanguage;
+    options.locale = "en"; // Default since no eBookConfig in PIF mode
+    
+    // Set instance properties
+    this.noindent = options.noindent;
+    if (options.adaptive) {
+        this.initializeAdaptive();
+    }
+    
+    this.options = options;
+    }
+
+    
     // Based on the data-fields in the original HTML, initialize options
     initializeOptions() {
         var options = {
@@ -165,6 +283,111 @@ export default class Parsons extends RunestoneBase {
         this.options = options;
     }
 
+    initializeLinesFromPIF() {
+        this.lines = [];
+        
+        // Get blocks from PIF data - handle both direct and nested structure
+        const pifBlocks = this.pifData?.blocks || this.pifData?.value?.blocks || [];
+        
+        if (!Array.isArray(pifBlocks) || pifBlocks.length === 0) {
+            console.warn('No valid blocks found in PIF data');
+            console.log('pifData.blocks:', this.pifData?.blocks);
+            console.log('pifData.value?.blocks:', this.pifData?.value?.blocks);
+            return;
+        }
+        
+        console.log('Found', pifBlocks.length, 'blocks to process');
+        
+        var solution = [];
+        var indents = [];
+        
+        for (let i = 0; i < pifBlocks.length; i++) {
+            const pifBlock = pifBlocks[i];
+            
+            // Validate pifBlock structure
+            if (!pifBlock || typeof pifBlock !== 'object') {
+                console.warn(`PIF block at index ${i} is invalid:`, pifBlock);
+                continue;
+            }
+            
+            // Determine if it's a distractor - handle empty strings and various formats
+            const blockType = (pifBlock.type || "").trim();
+            const blockDepends = (pifBlock.depends || "").trim();
+            const isDistractor = blockType === "distractor" || 
+                               blockDepends === "-1";
+            
+            // Create ParsonsLine from PIF block with safe defaults
+            const blockText = (pifBlock.text || "").toString().trim();
+            
+            // Skip empty blocks
+            if (!blockText) {
+                console.warn(`Skipping empty block at index ${i}:`, pifBlock);
+                continue;
+            }
+            
+            const displayMath = Boolean(pifBlock.displaymath);
+            
+            var line = new ParsonsLine(this, blockText, displayMath);
+            
+            // Set properties - handle various indent formats
+            const indentValue = pifBlock.indent;
+            if (typeof indentValue === 'number') {
+                line.indent = indentValue;
+            } else if (typeof indentValue === 'string') {
+                if (indentValue.trim() === '') {
+                    line.indent = 0;
+                } else {
+                    line.indent = parseInt(indentValue) || 0;
+                }
+            } else {
+                line.indent = 0;
+            }
+            line.distractor = isDistractor;
+            line.paired = false; // PIF doesn't seem to use paired distractors
+            line.groupWithNext = false; // Each PIF block is typically a separate draggable unit
+            
+            // Handle DAG grading
+            if (this.options.grader === "dag" && !line.distractor) {
+                line.tag = pifBlock.tag || ("block-" + i);
+                
+                // Handle depends field
+                if (pifBlock.depends && pifBlock.depends.trim()) {
+                    if (Array.isArray(pifBlock.depends)) {
+                        line.depends = pifBlock.depends;
+                    } else if (typeof pifBlock.depends === 'string') {
+                        line.depends = pifBlock.depends.split(',').map(s => s.trim()).filter(s => s);
+                    } else {
+                        line.depends = [];
+                    }
+                } else {
+                    line.depends = [];
+                }
+            }
+            
+            // Add to solution if not distractor
+            if (!line.distractor) {
+                solution.push(line);
+            }
+            
+            // Note: line is automatically added to this.lines by ParsonsLine constructor
+            // No need to manually push it here
+            
+            // Track indents for normalization
+            if (indents.indexOf(line.indent) === -1) {
+                indents.push(line.indent);
+            }
+        }
+        
+        // Normalize indents (same logic as original)
+        indents = indents.sort((a, b) => a - b);
+        for (let i = 0; i < this.lines.length; i++) {
+            this.lines[i].indent = indents.indexOf(this.lines[i].indent);
+        }
+        
+        this.solution = solution;
+    }
+
+
     // Based on what is specified in the original HTML, create the HTML view
     initializeView() {
         this.outerDiv = document.createElement("div");
@@ -229,7 +452,10 @@ export default class Parsons extends RunestoneBase {
         var that = this;
         this.checkButton = document.createElement("button");
         $(this.checkButton).attr("class", "btn btn-success");
-        this.checkButton.textContent = $.i18n("msg_parson_check_me");
+        console.log('i18n debug - $.i18n available:', typeof $.i18n);
+        console.log('i18n debug - check message:', $.i18n ? $.i18n("msg_parson_check_me") : 'no $.i18n');
+        this.checkButton.textContent = ($.i18n && $.i18n("msg_parson_check_me") !== "msg_parson_check_me") 
+            ? $.i18n("msg_parson_check_me") : "Check Me";
         this.checkButton.id = this.counterId + "-check";
         this.parsonsControlDiv.appendChild(this.checkButton);
         this.checkButton.type = "button";
@@ -241,7 +467,9 @@ export default class Parsons extends RunestoneBase {
         });
         this.resetButton = document.createElement("button");
         $(this.resetButton).attr("class", "btn btn-default");
-        this.resetButton.textContent = $.i18n("msg_parson_reset");
+        console.log('i18n debug - reset message:', $.i18n ? $.i18n("msg_parson_reset") : 'no $.i18n');
+        this.resetButton.textContent = ($.i18n && $.i18n("msg_parson_reset") !== "msg_parson_reset") 
+            ? $.i18n("msg_parson_reset") : "Reset";
         this.resetButton.id = this.counterId + "-reset";
         this.resetButton.type = "button";
         this.parsonsControlDiv.appendChild(this.resetButton);
@@ -257,7 +485,8 @@ export default class Parsons extends RunestoneBase {
         if (this.options.adaptive) {
             this.helpButton = document.createElement("button");
             $(this.helpButton).attr("class", "btn btn-primary");
-            this.helpButton.textContent = $.i18n("msg_parson_help");
+            this.helpButton.textContent = ($.i18n && $.i18n("msg_parson_help") !== "msg_parson_help") 
+                ? $.i18n("msg_parson_help") : "Help Me";
             this.helpButton.id = this.counterId + "-help";
             this.helpButton.disabled = false; // bje
             this.parsonsControlDiv.appendChild(this.helpButton);
@@ -270,9 +499,14 @@ export default class Parsons extends RunestoneBase {
         this.messageDiv.id = this.counterId + "-message";
         this.parsonsControlDiv.appendChild(this.messageDiv);
         $(this.messageDiv).hide();
-        $(this.origElem).replaceWith(this.outerDiv);
+        if (!this.pifMode) {
+            $(this.origElem).replaceWith(this.outerDiv);
+        } else {
+            // In PIF mode, append outerDiv to containerDiv
+            this.containerDiv[0].appendChild(this.outerDiv);
+        }
         $(this.outerDiv).closest(".sqcontainer").css("max-width", "none");
-        if (this.outerDiv) {
+        if (this.outerDiv && this.question) {
             if ($(this.question).html().match(/^\s+$/)) {
                 $(this.question).remove();
             } else {
@@ -484,7 +718,7 @@ export default class Parsons extends RunestoneBase {
                     );
                 } else {
                     // this is for older rst builds not ptx
-                    if (typeof MathJax.startup !== "undefined") {
+                    if (typeof MathJax !== "undefined" && typeof MathJax.startup !== "undefined") {
                         await self.queueMathJax(item[0]);
                     }
                 }
@@ -586,7 +820,7 @@ export default class Parsons extends RunestoneBase {
 
         this.pairedBins = pairedBins;
         this.pairedDivs = pairedDivs;
-        if (this.options.numbered != undefined) {
+        if (this.options.numbered && this.options.numbered !== false) {
             this.addBlockLabels(sourceBlocks.concat(answerBlocks));
         }
         // Update the view
@@ -609,7 +843,7 @@ export default class Parsons extends RunestoneBase {
             this.options.language == "natural" ||
             this.options.language == "math"
         ) {
-            if (typeof MathJax.startup !== "undefined") {
+            if (typeof MathJax !== "undefined" && typeof MathJax.startup !== "undefined") {
                 self.queueMathJax(self.outerDiv);
             }
         }
@@ -1059,10 +1293,10 @@ export default class Parsons extends RunestoneBase {
         var blocks = [];
         var lines = [];
         var block, line, i;
+        
         for (i = 0; i < this.lines.length; i++) {
             line = this.lines[i];
             lines.push(line);
-            console.log(lines)
             if (!line.groupWithNext) {
                 unorderedBlocks.push(new ParsonsBlock(this, lines));
                 lines = [];
@@ -1190,8 +1424,20 @@ export default class Parsons extends RunestoneBase {
         var split = hash.split("_");
         var lines = [];
         for (var i = 0; i < split.length - 1; i++) {
-            lines.push(this.lines[split[i]]);
+            var lineIndex = parseInt(split[i]);
+            if (lineIndex >= 0 && lineIndex < this.lines.length && this.lines[lineIndex]) {
+                lines.push(this.lines[lineIndex]);
+            } else {
+                console.warn(`Invalid line index ${lineIndex} in hash ${hash}. Available lines: ${this.lines.length}`);
+            }
         }
+        
+        // Don't create a block if no valid lines were found
+        if (lines.length === 0) {
+            console.warn(`No valid lines found for hash ${hash}`);
+            return null;
+        }
+        
         var block = new ParsonsBlock(this, lines);
         if (this.noindent) {
             block.indent = 0;
@@ -1211,7 +1457,10 @@ export default class Parsons extends RunestoneBase {
         }
         var blocks = [];
         for (var i = 0; i < split.length; i++) {
-            blocks.push(this.blockFromHash(split[i]));
+            var block = this.blockFromHash(split[i]);
+            if (block !== null) {
+                blocks.push(block);
+            }
         }
         if (this.options.adaptive) {
             return this.adaptBlocks(blocks);
@@ -2671,3 +2920,8 @@ $(document).ready(function () {
     })
 
 });
+
+// Expose Parsons globally for browser access
+if (typeof window !== 'undefined') {
+    window.Parsons = Parsons;
+}

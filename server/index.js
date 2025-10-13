@@ -88,6 +88,8 @@ app.get('/parsons/bundle.js', (req, res) => {
     res.sendFile(path.join(__dirname, '../public', 'bundle.js'));
 })
 
+// i18n files are bundled into webpack build - no need for separate route
+
 // Serve all assets from dist folder
 app.get('/parsons/dist/:filename', (req, res) => {
     const filePath = req.params.filename; // Get everything after /parsons/dist/
@@ -221,8 +223,129 @@ app.get('/parsons/pif/:source/:filename', async (req, res) => {
     res.send(dom.serialize());
 });
 
-//Catch all unknown routes and render the home page
-app.get('/parsons/{*any}', async (req, res) => {
+// Test route for PIF JSON direct feeding (Math version)
+app.get('/parsons/test-json', (req, res) => {
+    try {
+        // Load the fixed-demo.json file
+        const pifJsonPath = path.join(__dirname, '../downloads/fixed-demo.json');
+        const pifJsonData = JSON.parse(fs.readFileSync(pifJsonPath, 'utf8'));
+
+        // Create HTML page that uses PIF JSON directly
+        const html = createTestPage(pifJsonData, 'Testing PIF JSON Direct Feed (Math)');
+        res.send(html);
+    } catch (error) {
+        console.error('Error in test-json route:', error);
+        res.status(500).send('Error loading PIF JSON test page');
+    }
+});
+
+// Test route for PIF JSON direct feeding (Python version)  
+app.get('/parsons/test-python', (req, res) => {
+    try {
+        // Load the 2nd.json file
+        const pifJsonPath = path.join(__dirname, '../downloads/2nd.json');
+        const pifJsonData = JSON.parse(fs.readFileSync(pifJsonPath, 'utf8'));
+        
+        // Create HTML page that uses PIF JSON directly
+        const html = createTestPage(pifJsonData, 'Testing PIF JSON Direct Feed (Python)');
+        res.send(html);
+    } catch (error) {
+        console.error('Error in test-python route:', error);
+        res.status(500).send('Error loading Python PIF JSON test page');
+    }
+});
+
+// Test route for Java indentation example
+app.get('/parsons/test-indent', (req, res) => {
+    try {
+        // Load the indent.json file
+        const pifJsonPath = path.join(__dirname, '../downloads/indent.json');
+        const pifJsonData = JSON.parse(fs.readFileSync(pifJsonPath, 'utf8'));
+        
+        // Create HTML page that uses PIF JSON directly
+        const html = createTestPage(pifJsonData, 'Testing Java Indentation Example');
+        res.send(html);
+    } catch (error) {
+        console.error('Error in test-indent route:', error);
+        res.status(500).send('Error loading Java indentation test page');
+    }
+});
+
+function createTestPage(pifJsonData, title) {
+    return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Test PIF JSON Direct</title>
+        <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+        <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+        <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/ui-lightness/jquery-ui.css">
+        
+        <!-- Load jQuery i18n plugin before Parsons -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.i18n/1.0.9/jquery.i18n.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.i18n/1.0.9/jquery.i18n.messagestore.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.i18n/1.0.9/jquery.i18n.parser.min.js"></script>
+        
+        <script>
+            // Mock eBookConfig for standalone mode
+            window.eBookConfig = {
+                locale: 'en',
+                language: 'python',
+                isPlaygroundEnv: false,
+                course: 'test-course',
+                basecourse: 'test-basecourse',
+                user: 'test-user',
+                isLoggedIn: false,
+                useRunestoneServices: false,
+                logLevel: 0,
+                debug: false
+            };
+        </script>
+        
+        <!-- Load Parsons (i18n is bundled) -->
+        <script src="/dist/parsons.js"></script>
+        <link rel="stylesheet" href="/css/parsons.css">
+        <link rel="stylesheet" href="/css/index.css">
+        
+
+    </head>
+    <body>
+        <h1>${title}</h1>
+        <div id="test-container"></div>
+        
+        <script>
+            // PIF JSON data
+            const pifData = ${JSON.stringify(pifJsonData)};
+            
+            console.log('PIF Data:', pifData);
+            
+            // Create Parsons instance directly from JSON
+            try {
+                const parsons = new Parsons({
+                    pifJson: pifData,
+                    divid: "test-parsons-json",
+                    useRunestoneServices: false
+                });
+                
+                console.log('Parsons instance created:', parsons);
+                
+                // Append to container
+                document.getElementById('test-container').appendChild(parsons.containerDiv[0]);
+                
+            } catch (error) {
+                console.error('Error creating Parsons:', error);
+                document.getElementById('test-container').innerHTML = 
+                    '<p style="color: red;">Error: ' + error.message + '</p>';
+            }
+        </script>
+    </body>
+    </html>`;
+}
+
+        
+
+// Home page - list available files and upload option
+app.get('/parsons/', async (req, res) => {
     try {
         const html = await renderPage(req, STATE);
         res.send(html);

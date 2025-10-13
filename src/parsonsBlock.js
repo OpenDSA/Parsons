@@ -159,7 +159,10 @@ export default class ParsonsBlock {
             $(div).addClass("left-label");
         }
         $(div).append(document.createTextNode(label));
-        $(this.view).children(".labels")[0].append(div);
+        var labelsContainer = $(this.view).children(".labels")[0];
+        if (labelsContainer) {
+            labelsContainer.appendChild(div);
+        }
         if (this.labels.length != 0) {
             $(div).css(
                 "margin-top",
