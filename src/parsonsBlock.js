@@ -114,11 +114,14 @@ export default class ParsonsBlock {
         if ($(block.view).attr("tabindex") == "0") {
             this.makeTabIndex();
         }
-        $(block.view).detach();
-        var newBlocks = [];
-        for (let i = 0; i < this.problem.blocks.length; i++) {
-            if (this.problem.blocks[i] !== block) {
-                newBlocks.push(this.problem.blocks[i]);
+        if (!this.isReusable()) {
+            $(block.view).detach();
+        
+            var newBlocks = [];
+            for (let i = 0; i < this.problem.blocks.length; i++) {
+                if (this.problem.blocks[i] !== block) {
+                    newBlocks.push(this.problem.blocks[i]);
+                }
             }
         }
         for (let i = 0; i < block.labels.length; i++) {
