@@ -130,7 +130,13 @@ export default class RunestoneBase {
             );
             eventInfo.event = "selectquestion";
             eventInfo.act = "interaction";
-            this.postLogMessage(eventInfo);
+            if (
+                eBookConfig.isLoggedIn &&
+                eBookConfig.useRunestoneServices &&
+                eBookConfig.logLevel > 0
+            ) {
+                this.postLogMessage(eventInfo);
+            }
         }
         if (
             typeof pageProgressTracker.updateProgress === "function" &&

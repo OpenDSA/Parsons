@@ -88,6 +88,8 @@ app.get('/parsons/bundle.js', (req, res) => {
     res.sendFile(path.join(__dirname, '../public', 'bundle.js'));
 })
 
+
+
 // Serve all assets from dist folder
 app.get('/parsons/dist/:filename', (req, res) => {
     const filePath = req.params.filename; // Get everything after /parsons/dist/
@@ -175,10 +177,12 @@ app.get('/parsons/pif/:source/:filename', async (req, res) => {
         parsedJson = result.body;
         //logEvent(`Parsed PIF file ${filename} successfully`);
         //console.log(JSON.stringify(parsedJson))
+        //res.send(parsedJson);
     } catch (e) {
         console.error("Failed to parse PIF file:", e);
         error = e;
     }
+
 
     const dom = new JSDOM(parsonsPageTemplate);
     const window = dom.window;
@@ -219,8 +223,101 @@ app.get('/parsons/pif/:source/:filename', async (req, res) => {
     res.send(dom.serialize());
 });
 
-//Catch all unknown routes and render the home page
-app.get('/parsons/{*any}', async (req, res) => {
+//Parse PIF file and serve with client-side JSON implementation (no server-side HTML generation)
+app.get('/parsons/pifjson/:source/:filename', async (req, res) => {
+    const filename = req.params.filename;
+    const source = req.params.source;
+    //When set to false, the page will not show the instructions for the problem.
+    const showNoPrompt = req.query.prompt === "false";
+    //When set to true, the page is has no back to home button. Ideal for embedding in other pages
+    const isolatedExercise = req.query.isolated === "true";
+    let parsedJson = null;
+    let error = null;
+
+    try {
+        if (source === 'github') {
+            await downloadFile(filename);
+        }
+
+        const result = await parsePIF(source, filename);
+        parsedJson = result.body;
+        logEvent(`Parsed PIF file ${filename} successfully for JSON implementation`);
+    } catch (e) {
+        console.error("Failed to parse PIF file:", e);
+        error = e;
+    }
+
+    const dom = new JSDOM(parsonsPageTemplate);
+    const window = dom.window;
+    const $ = jqueryFactory(window);
+
+    if (error) {
+        // Handle file not found or parsing errors gracefully
+        const errorMessage = error.message.includes('ENOENT') || error.message.includes('not found') 
+            ? `File "${filename}" not found in ${source === 'github' ? 'GitHub repository' : 'uploads'}.`
+            : `Error parsing file "${filename}": ${error.message}`;
+        
+        const backToHomeButton = isolatedExercise ? '' : `<p><a href="/parsons/" style="color: #721c24; text-decoration: underline;">← Back to Home</a></p>`;
+        
+        $('body').append(`
+            <div style="padding: 20px; margin: 20px; border: 1px solid #dc3545; border-radius: 5px; background-color: #f8d7da; color: #721c24;">
+                <h2 style="color: #721c24; margin-top: 0;">File Not Found</h2>
+                <p>${errorMessage}</p>
+                ${backToHomeButton}
+            </div>
+        `);
+    } else {
+        // Client-side JSON implementation - NO injectFromPIF()
+        $('body').append(`
+            <div id="parsons-container" class="parsons" data-component="parsons">
+                <div class="parsons_question parsons-text">
+                    <p>${parsedJson.value.question_text || 'Please arrange the code blocks correctly.'}</p>
+                </div>
+            </div>
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    // Client builds Parsons from JSON
+                    try {
+                        new Parsons({
+                            orig: document.getElementById('parsons-container'),
+                            pifJson: ${JSON.stringify(parsedJson)},
+                            divid: 'parsons-container',
+                            useRunestoneServices: false
+                        });
+                        
+                        // Hide prompt if requested
+                        ${showNoPrompt ? `
+                        setTimeout(function() {
+                            const parsonsText = document.querySelector('.parsons-text, .parsons_question');
+                            if (parsonsText) {
+                                parsonsText.style.display = 'none';
+                            }
+                        }, 100);
+                        ` : ''}
+                    } catch (error) {
+                        console.error('Error initializing Parsons:', error);
+                        document.getElementById('parsons-container').innerHTML = 
+                            '<div style="color: red; padding: 20px;">Error loading Parsons exercise: ' + error.message + '</div>';
+                    }
+                });
+            </script>
+        `);
+
+        // Add back to home button for successful exercises (unless isolated)
+        if (!isolatedExercise) {
+            $('body').append(`
+                <div style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
+                    <a href="/parsons/" style="display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">← Back to Home</a>
+                </div>
+            `);
+        }
+    }
+
+    res.send(dom.serialize());
+});
+
+// Home page - list available files and upload option
+app.get('/parsons/', async (req, res) => {
     try {
         const html = await renderPage(req, STATE);
         res.send(html);

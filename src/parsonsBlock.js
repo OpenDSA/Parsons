@@ -24,7 +24,6 @@ export default class ParsonsBlock {
         view.id = problem.counterId + "-block-" + problem.blockIndex;
         problem.blockIndex += 1;
         $(view).addClass("block");
-        console.log(lines)
         var sharedIndent = lines[0].indent;
         for (let i = 1; i < lines.length; i++) {
             sharedIndent = Math.min(sharedIndent, lines[i].indent);
@@ -162,7 +161,10 @@ export default class ParsonsBlock {
             $(div).addClass("left-label");
         }
         $(div).append(document.createTextNode(label));
-        $(this.view).children(".labels")[0].append(div);
+        var labelsContainer = $(this.view).children(".labels")[0];
+        if (labelsContainer) {
+            labelsContainer.appendChild(div);
+        }
         if (this.labels.length != 0) {
             $(div).css(
                 "margin-top",
