@@ -1,5 +1,7 @@
-$.i18n().load({
-    "pt-br": {
+// Only load i18n if the plugin is available
+if (typeof $ !== 'undefined' && $.i18n) {
+    $.i18n().load({
+        "pt-br": {
         msg_parson_check_me: "Verificar",
         msg_parson_reset: "Resetar",
         msg_parson_help:"Ajuda",
@@ -34,3 +36,4 @@ $.i18n().load({
         msg_parson_will_provide_indent: "Será fornecida a indentação"
     },
 });
+}

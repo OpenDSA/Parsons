@@ -6,6 +6,11 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'parsons.js',
+    library: {
+      name: 'Parsons',
+      type: 'window',
+      export: 'default'
+    }
   },
   mode: 'development', // or 'production'
   module: {

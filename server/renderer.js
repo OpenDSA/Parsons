@@ -27,14 +27,14 @@ async function renderPage(req, state) {
             // Generate file lists
             const githubFileList = availableFiles.github.length > 0 
                 ? availableFiles.github.map(file => 
-                    `<li><a href="${protocol}://${host}/parsons/pif/github/${file}">${file}</a></li>`
+                    `<li><a href="${protocol}://${host}/parsons/pifjson/github/${file}">${file}</a></li>`
                 ).join('')
                 : '<li><em>No GitHub files available</em></li>';
 
             const uploadedFileList = availableFiles.uploaded.length > 0 
                 ? availableFiles.uploaded.map(file => 
                     `<li style="display: flex; align-items: center; margin-bottom: 5px; gap: 8px;">
-                        <a href="${protocol}://${host}/parsons/pif/upload/${file}">${file}</a>
+                        <a href="${protocol}://${host}/parsons/pifjson/upload/${file}">${file}</a>
                         <button onclick="deleteFile('${file}')" style="background-color: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 0.8em;">Delete</button>
                     </li>`
                 ).join('')
