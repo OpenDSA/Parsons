@@ -17,12 +17,15 @@
 ===================================================================== */
 // Initialize from codestring
 
+import ParsonsToggle from './parsonsToggle.js';
+
 export default class ParsonsLine {
-    constructor(problem, codestring, displaymath) {
+    constructor(problem, codestring, displaymath, togglesArray) {
         this.problem = problem;
         this.index = problem.lines.length;
         var trimmed = codestring.replace(/\s*$/, "");
         this.text = trimmed.replace(/^\s*/, "");
+        this.toggles = [];
 
         //28-31: Not from Runestone
         // this.text = this.text.replace(/\*\*(.*?)\*\*/g, '\(\textbf{$1}\)');
@@ -46,6 +49,23 @@ export default class ParsonsLine {
             $(view).addClass(problem.options.prettifyLanguage);
         }
         view.id = problem.counterId + "-line-" + this.index;
+
+        //creating toggles within text
+        console.log(togglesArray);
+        if(togglesArray.length > 0){
+            for(let i = 0; i < togglesArray.length; i++){
+                //creates a new toggleobject
+                const toggle = new ParsonsToggle(togglesArray[i].values);
+                this.toggles.push(toggle);
+
+                //inserts toggle into the inner html
+                const index = togglesArray[i].pos;
+                const endString = this.text.slice(index);
+                const startString = this.text.slice(0, index);
+                this.text = startString + " " + toggle.htmlContent + " " + endString;
+            }
+        }
+
         view.innerHTML += this.text;
         this.view = view;
         problem.lines.push(this);
