@@ -197,7 +197,12 @@ export default class Parsons extends RunestoneBase {
 
     
     // Based on the data-fields in the original HTML, initialize options
+    // HTML-ONLY FUNCTION - DISABLED FOR JSON INDEPENDENCE TESTING
     initializeOptions() {
+        if (this.pifMode) {
+            console.log("HTML-ONLY: initializeOptions() skipped in PIF mode");
+            return;
+        }
         var options = {
             pixelsPerIndent: 30,
         };
@@ -491,7 +496,12 @@ export default class Parsons extends RunestoneBase {
     }
 
     // Initialize lines and solution properties
+    // HTML-ONLY FUNCTION - DISABLED FOR JSON INDEPENDENCE TESTING
     initializeLines(text) {
+        if (this.pifMode) {
+            console.log("HTML-ONLY: initializeLines() skipped in PIF mode");
+            return;
+        }
         this.lines = [];
         // Create the initial blocks
         var textBlocks = text.split("---");
