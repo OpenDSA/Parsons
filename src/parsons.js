@@ -512,6 +512,19 @@ export default class Parsons extends RunestoneBase {
             var tagIndex;
             var tag;
             var dependsIndex;
+
+            var togglesArray = [];
+            // uncomment to test toggle functionality
+            // var togglesArray = [
+            //     {
+            //         pos: 5,
+            //         values: ["1","2","3"]
+            //     },
+            //     {
+            //         pos: 1,
+            //         values: ["true","false"]
+            //     }
+            // ];
             var depends = [];
             if (textBlock.includes("#paired:")) {
                 distractIndex = textBlock.indexOf("#paired:");
@@ -569,7 +582,8 @@ export default class Parsons extends RunestoneBase {
                     var line = new ParsonsLine(
                         this,
                         code,
-                        options["displaymath"]
+                        options["displaymath"],
+                        togglesArray
                     );
                     lines.push(line);
                     if (options["reusable"]) {
@@ -814,6 +828,11 @@ export default class Parsons extends RunestoneBase {
     initializeInteractivity() {
         for (var i = 0; i < this.blocks.length; i++) {
             this.blocks[i].initializeInteractivity();
+        }
+        for (var i = 0; i < this.lines.length; i++) {
+            for(const toggle of this.lines[i].toggles){
+                toggle.attachListeners();
+            }
         }
         this.initializeTabIndex();
         let self = this;
