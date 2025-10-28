@@ -211,6 +211,15 @@ export default class ParsonsBlock {
     isDistractor() {
         return this.lines[0].distractor;
     }
+    // Rturns a boolean as to whether this block is reusable. 
+    isReusable() {
+        for (let i = 0; i < this.lines.length; i++) {
+            if (this.lines[i].reusable === true) {
+                return true;
+            }
+        }
+        return false;     
+    }
     // Return a boolean as to whether this block is in the source area
     inSourceArea() {
         var children = this.problem.sourceArea.childNodes;
@@ -457,6 +466,21 @@ export default class ParsonsBlock {
         delete this.problem.movingX;
         delete this.problem.movingY;
         this.problem.updateView();
+
+        if (this.isReusable() && !this.inSourceArea()) {
+            const clonedLines = [];
+            for (let i = 0; i < this.lines.length; i++) {
+                const currLine = this.lines[i].cloneLineForReusable();
+                clonedLines.push(currLine);
+            }
+
+            const clonedBlock = new ParsonsBlock(this.problem, clonedLines);
+            this.problem.sourceArea.append(clonedBlock.view);
+            clonedBlock.initializeInteractivity();
+            this.problem.blocks.push(clonedBlock);
+            this.problem.updateView();
+        }
+
         this.problem.logMove("move");
     }
     // Called when a block is moved

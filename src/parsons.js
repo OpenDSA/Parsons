@@ -557,6 +557,7 @@ export default class Parsons extends RunestoneBase {
             );
             // Create lines
             var lines = [];
+            this.requiresExecuteGrading = false;
             if (!options["displaymath"]) {
                 var split = textBlock.split("\n");
             } else {
@@ -574,6 +575,7 @@ export default class Parsons extends RunestoneBase {
                     lines.push(line);
                     if (options["reusable"]) {
                         line.reusable = true;
+                        this.requiresExecuteGrading = true;
                     }
                     if (options["paired"]) {
                         line.distractor = true;
@@ -1570,6 +1572,9 @@ export default class Parsons extends RunestoneBase {
     // The "Check Me" button was pressed.
     checkCurrentAnswer() {
         if (!this.hasSolved) {
+            if (this.requiresExecuteGrading) {
+                throw new Error("Execute grading not yet supported")
+            }
             this.checkCount++;
             this.clearFeedback();
             if (this.adaptiveId == undefined) {

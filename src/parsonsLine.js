@@ -111,4 +111,15 @@ export default class ParsonsLine {
             return this.indent - block.solutionIndent() + block.indent;
         }
     }
+    cloneLineForReusable() {
+        let copy = new ParsonsLine(this.problem, this.text, this.displaymath);
+        copy.groupWithNext = this.groupWithNext;
+        copy.reusable = this.reusable;
+        copy.indent = this.indent;
+        copy.depends = this.depends;
+        copy.distractor = this.distractor;
+        copy.paired = this.paired;
+        copy.tag = this.tag;
+        return copy;
+    }
 }
