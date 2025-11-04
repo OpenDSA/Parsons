@@ -5,10 +5,12 @@ WORKDIR /app
 COPY package*.json ./
 
 
-RUN npm ci --only=production
+RUN npm install 
 
 
 COPY . .
+
+RUN npx webpack --config webpack.config.js
 
 FROM node:22-slim
 
