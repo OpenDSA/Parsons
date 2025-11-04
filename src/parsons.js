@@ -270,7 +270,7 @@ export default class Parsons extends RunestoneBase {
         
         // Get blocks from PIF data - handle both direct and nested structure
         const pifBlocks = this.pifData?.blocks || this.pifData?.value?.blocks || [];
-        
+
         if (!Array.isArray(pifBlocks) || pifBlocks.length === 0) {
             console.warn('No valid blocks found in PIF data');
             return;
@@ -305,7 +305,9 @@ export default class Parsons extends RunestoneBase {
             
             const displayMath = Boolean(pifBlock.displaymath);
             
-            var line = new ParsonsLine(this, blockText, displayMath);
+            //make togglesArray work with backend later
+            var togglesArray = [];
+            var line = new ParsonsLine(this, blockText, displayMath, togglesArray);
             
             // Set properties - handle various indent formats
             const indentValue = pifBlock.indent;
@@ -321,8 +323,12 @@ export default class Parsons extends RunestoneBase {
                 line.indent = 0;
             }
             line.distractor = isDistractor;
+            line.distractHelpText = 
             line.paired = false; // PIF doesn't seem to use paired distractors
             line.groupWithNext = false; // Each PIF block is typically a separate draggable unit
+            if(pifBlock.feedback.length !== 0){
+                line.distractHelptext = pifBlock.feedback;
+            }
             
             // Handle DAG grading
             if (this.options.grader === "dag" && !line.distractor) {
@@ -1826,6 +1832,7 @@ export default class Parsons extends RunestoneBase {
         var block;
         for (let i = 0; i < blocks.length; i++) {
             block = blocks[i];
+            console.log("within enabled Asnwer Blocks");
             if (block.isDistractor()) {
                 return block;
             }

@@ -51,7 +51,6 @@ export default class ParsonsLine {
         view.id = problem.counterId + "-line-" + this.index;
 
         //creating toggles within text
-        console.log(togglesArray);
         if(togglesArray.length > 0){
             for(let i = 0; i < togglesArray.length; i++){
                 //creates a new toggleobject
