@@ -323,7 +323,10 @@ export default class Parsons extends RunestoneBase {
             line.distractor = isDistractor;
             line.paired = false; // PIF doesn't seem to use paired distractors
             line.groupWithNext = false; // Each PIF block is typically a separate draggable unit
-            
+            if (pifBlock.reusable) {
+                line.reusable = true;
+                this.hasReusable = true;
+            }
             // Handle DAG grading
             if (this.options.grader === "dag" && !line.distractor) {
                 line.tag = pifBlock.tag || ("block-" + i);
@@ -360,6 +363,11 @@ export default class Parsons extends RunestoneBase {
         indents = indents.sort((a, b) => a - b);
         for (let i = 0; i < this.lines.length; i++) {
             this.lines[i].indent = indents.indexOf(this.lines[i].indent);
+        }
+
+        // Throws an error if reusable blocks are used without execute grading
+        if (this.hasReusable && this.options.grader !== "exec") {
+            throw new Error("Reusable blocks are only supported with execute grading.");
         }
         
         this.solution = solution;
@@ -437,6 +445,10 @@ export default class Parsons extends RunestoneBase {
         this.checkButton.type = "button";
         this.checkButton.addEventListener("click", function (event) {
             event.preventDefault();
+            // Throws an error if reusable blocks are used
+            if (that.options.grader === "exec" && that.hasReusable) {
+                throw new Error("Executable grading not yet implemented.");
+            }
             that.checkCurrentAnswer();
             that.logCurrentAnswer();
             that.renderFeedback();
@@ -1271,12 +1283,16 @@ export default class Parsons extends RunestoneBase {
         var blocks = [];
         var lines = [];
         var block, line, i;
-        
+
+        // Ensures that cloned blocks arent returned
         for (i = 0; i < this.lines.length; i++) {
             line = this.lines[i];
             lines.push(line);
             if (!line.groupWithNext) {
-                unorderedBlocks.push(new ParsonsBlock(this, lines));
+                block = new ParsonsBlock(this, lines);
+                if (!block.isClone()) {
+                    unorderedBlocks.push(block);
+                }
                 lines = [];
             }
         }
@@ -2828,6 +2844,24 @@ export default class Parsons extends RunestoneBase {
     resetView() {
         // Clear everything
         this.clearFeedback();
+        // remove cloned blocks
+        for (let i = 0; i < this.blocks.length; i++) {
+            var clonedBlock = this.blocks[i];
+            if (clonedBlock.isClone()) {
+                $(clonedBlock.view).remove();
+            }
+        }
+        // Remove all cloned lines
+        if (this.lines && this.lines.length > 0) {
+            var newLines = [];
+            for (let i = 0; i < this.lines.length; i++) {
+                var line = this.lines[i];
+                if (!line.isCloneLine) {
+                    newLines.push(line);
+                }
+            }
+            this.lines = newLines;
+        }
         var scrollTop = document.body.scrollTop;
         var block;
         for (let i = 0; i < this.blocks.length; i++) {

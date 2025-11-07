@@ -113,14 +113,11 @@ export default class ParsonsBlock {
         if ($(block.view).attr("tabindex") == "0") {
             this.makeTabIndex();
         }
-        if (!this.isReusable()) {
-            $(block.view).detach();
-        
-            var newBlocks = [];
-            for (let i = 0; i < this.problem.blocks.length; i++) {
-                if (this.problem.blocks[i] !== block) {
-                    newBlocks.push(this.problem.blocks[i]);
-                }
+        $(block.view).detach();
+        var newBlocks = [];
+        for (let i = 0; i < this.problem.blocks.length; i++) {
+            if (this.problem.blocks[i] !== block) {
+                newBlocks.push(this.problem.blocks[i]);
             }
         }
         for (let i = 0; i < block.labels.length; i++) {
@@ -210,6 +207,26 @@ export default class ParsonsBlock {
     // Return a boolean as to whether this block is a distractor
     isDistractor() {
         return this.lines[0].distractor;
+    }
+    // Returns a boolean as to whether this block is a reusable block
+    isReusable() {
+        for (let i = 0; i < this.lines.length; i++) {
+            const line = this.lines[i];
+            if (line.reusable === true) {
+                return true;
+            }
+        }
+        return false;
+    }
+    // Returns a boolean as to whether this block is a clone
+    isClone() {
+        for (let i = 0; i < this.lines.length; i++) {
+            const line = this.lines[i];
+            if (line.isCloneLine === true) {
+                return true;
+            }
+        }
+        return false;
     }
     // Return a boolean as to whether this block is in the source area
     inSourceArea() {
@@ -453,6 +470,40 @@ export default class ParsonsBlock {
     // Called when a block is dropped
     panEnd(event) {
         this.problem.isAnswered = true;
+        // Keeps cloned blocks in the answer area
+        if (this.isClone()) {
+            if (this.inSourceArea()) {
+                $(this.view).remove();
+                let newBlocks = [];
+                for (let i = 0; i < this.problem.blocks.length; i++) {
+                    let block = this.problem.blocks[i];
+                    if (block !== this) newBlocks.push(block);
+                }
+                this.problem.blocks = newBlocks;
+            }
+        }
+        // Creates a cloned block in the answer area and returns the original back to the source
+        else if (this.isReusable() && !this.inSourceArea()) {
+            let offset = this.verticalOffset();
+            let answerBlocks = this.problem.answerBlocks();
+            let beforeBlock;
+            for (let i = 0; i < answerBlocks.length; i++) {
+                const item = answerBlocks[i];
+                if (item.verticalOffset() >= offset) {
+                    beforeBlock = item.view;
+                    break;
+                }
+            }
+            let cloned = this.cloneBlockForReusable();
+            if (beforeBlock) {
+                this.problem.answerArea.insertBefore(cloned.view, beforeBlock);
+            } else {
+                this.problem.answerArea.appendChild(cloned.view);
+            }
+            this.problem.blocks.push(cloned);
+            cloned.initializeInteractivity();
+            this.problem.sourceArea.appendChild(this.view);
+        }
         delete this.problem.moving;
         delete this.problem.movingX;
         delete this.problem.movingY;
@@ -802,5 +853,17 @@ export default class ParsonsBlock {
             sharedIndent = Math.min(sharedIndent, this.lines[i].indent);
         }
         return sharedIndent;
+    }
+    // Clones a block
+    cloneBlockForReusable() {
+        const clonedLines = [];
+        for (let i = 0; i < this.lines.length; i++) {
+            const originalLine = this.lines[i];
+            const clonedLine = originalLine.cloneLineForReusable();
+            clonedLines.push(clonedLine);
+        }
+        const clonedBlock = new ParsonsBlock(this.problem, clonedLines);
+        $(clonedBlock.view).removeClass("disabled");
+        return clonedBlock;
     }
 }
