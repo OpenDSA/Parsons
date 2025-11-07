@@ -194,18 +194,6 @@ function injectFromPIF(pifJson, $) {
         }
     })
 
-    let gradeType = $problemDiv.attr("data-grader");
-    let isReusable = false;
-    for (const block of pifJson.blocks) {
-        if (block && (block.reusable === true || block.reusable === "true")) {
-            isReusable = true;
-        }
-    }
-
-    if (isReusable && gradeType !== "execute") {
-        throw new Error("Cannot use reusable blocks unless using execute grading");
-    }
-
     //ADDING QUESTION INSTRUCTION
     $questionDiv.empty().append($("<p>").append
         ($.parseHTML(pifJson.question_text)))

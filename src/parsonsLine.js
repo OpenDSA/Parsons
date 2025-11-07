@@ -130,4 +130,15 @@ export default class ParsonsLine {
             return this.indent - block.solutionIndent() + block.indent;
         }
     }
+    // Clones a line
+    cloneLineForReusable() {
+        const cloned = new ParsonsLine(this.problem, this.text, false);
+        cloned.indent = this.indent;
+        cloned.reusable = this.reusable;
+        cloned.distractor = this.distractor;
+        cloned.paired = this.paired;
+        cloned.groupWithNext = this.groupWithNext;
+        cloned.isCloneLine = true;
+        return cloned;
+    }
 }
