@@ -450,7 +450,6 @@ export default class Parsons extends RunestoneBase {
                 const errorMessage = "Executable grading not yet implemented.";
                 $('body').append(`
                     <div style="padding: 20px; margin: 20px; border: 1px solid #dc3545; border-radius: 5px; background-color: #f8d7da; color: #721c24;">
-                        <h2 style="color: #721c24; margin-top: 0;">File Not Found</h2>
                         <p>${errorMessage}</p>
                     </div>
                 `);
