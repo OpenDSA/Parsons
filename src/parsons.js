@@ -633,7 +633,7 @@ export default class Parsons extends RunestoneBase {
         for (const block of this.answerBlocks()) { 
             for (const line of block.lines) { 
                 for (let i = 0; i < line.indent; i++) { 
-                    code += " "; 
+                    code += "    "; 
                 } 
                 code += line.text + "\n"; 
             } 
