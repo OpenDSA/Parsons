@@ -454,6 +454,12 @@ export default class Parsons extends RunestoneBase {
             event.preventDefault();
             // Throws an error if reusable blocks are used
             if (that.options.grader === "exec" && that.hasReusable) {
+                const errorMessage = "Executable grading not yet implemented.";
+                $('body').append(`
+                    <div style="padding: 20px; margin: 20px; border: 1px solid #dc3545; border-radius: 5px; background-color: #f8d7da; color: #721c24;">
+                        <p>${errorMessage}</p>
+                    </div>
+                `);
                 throw new Error("Executable grading not yet implemented.");
             }
             that.checkCurrentAnswer();
