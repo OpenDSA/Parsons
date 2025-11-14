@@ -270,7 +270,7 @@ export default class Parsons extends RunestoneBase {
         
         // Get blocks from PIF data - handle both direct and nested structure
         const pifBlocks = this.pifData?.blocks || this.pifData?.value?.blocks || [];
-        
+
         if (!Array.isArray(pifBlocks) || pifBlocks.length === 0) {
             console.warn('No valid blocks found in PIF data');
             return;
@@ -305,7 +305,9 @@ export default class Parsons extends RunestoneBase {
             
             const displayMath = Boolean(pifBlock.displaymath);
             
-            var line = new ParsonsLine(this, blockText, displayMath);
+            //make togglesArray work with backend later
+            var togglesArray = [];
+            var line = new ParsonsLine(this, blockText, displayMath, togglesArray);
             
             // Set properties - handle various indent formats
             const indentValue = pifBlock.indent;
@@ -321,8 +323,13 @@ export default class Parsons extends RunestoneBase {
                 line.indent = 0;
             }
             line.distractor = isDistractor;
+            line.distractHelpText = 
             line.paired = false; // PIF doesn't seem to use paired distractors
             line.groupWithNext = false; // Each PIF block is typically a separate draggable unit
+            if(pifBlock.feedback.length !== 0){
+                line.distractHelptext = pifBlock.feedback;
+            }
+            
             if (pifBlock.reusable) {
                 line.reusable = true;
                 this.hasReusable = true;
@@ -445,8 +452,17 @@ export default class Parsons extends RunestoneBase {
         this.checkButton.type = "button";
         this.checkButton.addEventListener("click", function (event) {
             event.preventDefault();
-            if (that.options.grader === "exec") { 
+            if (that.options.grader === "exec") 
                 const code = that.extractCode(); 
+            // Throws an error if reusable blocks are used
+            if (that.options.grader === "exec" && that.hasReusable) {
+                const errorMessage = "Executable grading not yet implemented.";
+                $('body').append(`
+                    <div style="padding: 20px; margin: 20px; border: 1px solid #dc3545; border-radius: 5px; background-color: #f8d7da; color: #721c24;">
+                        <p>${errorMessage}</p>
+                    </div>
+                `);
+                throw new Error("Executable grading not yet implemented.");
             }
             that.checkCurrentAnswer();
             that.logCurrentAnswer();
@@ -523,6 +539,19 @@ export default class Parsons extends RunestoneBase {
             var tagIndex;
             var tag;
             var dependsIndex;
+
+            var togglesArray = [];
+            // uncomment to test toggle functionality
+            // var togglesArray = [
+            //     {
+            //         pos: 5,
+            //         values: ["1","2","3"]
+            //     },
+            //     {
+            //         pos: 1,
+            //         values: ["true","false"]
+            //     }
+            // ];
             var depends = [];
             if (textBlock.includes("#paired:")) {
                 distractIndex = textBlock.indexOf("#paired:");
@@ -580,7 +609,8 @@ export default class Parsons extends RunestoneBase {
                     var line = new ParsonsLine(
                         this,
                         code,
-                        options["displaymath"]
+                        options["displaymath"],
+                        togglesArray
                     );
                     lines.push(line);
                     if (options["reusable"]) {
@@ -843,6 +873,11 @@ export default class Parsons extends RunestoneBase {
     initializeInteractivity() {
         for (var i = 0; i < this.blocks.length; i++) {
             this.blocks[i].initializeInteractivity();
+        }
+        for (var i = 0; i < this.lines.length; i++) {
+            for(const toggle of this.lines[i].toggles){
+                toggle.attachListeners();
+            }
         }
         this.initializeTabIndex();
         let self = this;
@@ -1840,6 +1875,7 @@ export default class Parsons extends RunestoneBase {
         var block;
         for (let i = 0; i < blocks.length; i++) {
             block = blocks[i];
+            console.log("within enabled Asnwer Blocks");
             if (block.isDistractor()) {
                 return block;
             }
