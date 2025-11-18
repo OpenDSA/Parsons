@@ -1,6 +1,6 @@
 {
   "name": "parsons-prakhar",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "This is a server side rendered implementation of OpenDSA/Parsons. This implementation consumes the [Parsons Problem Input Format (PIF)](https://docs.google.com/document/d/1ZzEgS4_2SyS88fhWVp0041KmfWFnXBKgMWmPEDI7chw/edit?usp=sharing) an extension of [PEML](https://cssplice.org/peml/).",
   "main": "index.js",
   "files": [
