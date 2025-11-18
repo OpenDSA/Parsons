@@ -1,6 +1,6 @@
 const path = require('path');
 
-const { parsePIF } = require('./server/helpers/pifParsingHelpers');
+const parsePIF = require('./server/helpers/parsePIF');
 
 let cachedParsons;
 
