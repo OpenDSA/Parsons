@@ -453,7 +453,7 @@ export default class Parsons extends RunestoneBase {
         this.checkButton.addEventListener("click", function (event) {
             event.preventDefault();
             if (that.options.grader === "exec") 
-                const code = that.extractCode(); 
+                code = that.extractCode(); 
             // Throws an error if reusable blocks are used
             if (that.options.grader === "exec" && that.hasReusable) {
                 const errorMessage = "Executable grading not yet implemented.";
@@ -668,6 +668,11 @@ export default class Parsons extends RunestoneBase {
                 code += line.text + "\n"; 
             } 
         } 
+        let wrapper = assets.code.wrapper
+        if (wrapper) {
+            code = wrapper.replace("___", code);
+        }
+
         let extraction = new Object();
         extraction.id = this.divid;
         extraction.code = code;
