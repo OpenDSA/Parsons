@@ -132,7 +132,7 @@ export default class ParsonsLine {
     }
     // Clones a line
     cloneLineForReusable() {
-        const cloned = new ParsonsLine(this.problem, this.text, false);
+        const cloned = new ParsonsLine(this.problem, this.text, false, []);
         cloned.indent = this.indent;
         cloned.reusable = this.reusable;
         cloned.distractor = this.distractor;
