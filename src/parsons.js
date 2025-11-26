@@ -452,6 +452,8 @@ export default class Parsons extends RunestoneBase {
         this.checkButton.type = "button";
         this.checkButton.addEventListener("click", function (event) {
             event.preventDefault();
+            if (that.options.grader === "exec") 
+                code = that.extractCode(); 
             // Throws an error if reusable blocks are used
             if (that.options.grader === "exec" && that.hasReusable) {
                 const errorMessage = "Executable grading not yet implemented.";
@@ -653,6 +655,29 @@ export default class Parsons extends RunestoneBase {
             line.indent = indents.indexOf(line.indent);
         }
         this.solution = solution;
+    }
+
+    // Extracts code for execute grading
+    extractCode() { 
+        let code = ""; 
+        for (const block of this.answerBlocks()) { 
+            for (const line of block.lines) { 
+                for (let i = 0; i < line.indent; i++) { 
+                    code += "    "; 
+                } 
+                code += line.text + "\n"; 
+            } 
+        } 
+        let wrapper = assets.code.wrapper
+        if (wrapper) {
+            code = wrapper.replace("___", code);
+        }
+
+        let extraction = new Object();
+        extraction.id = this.divid;
+        extraction.code = code;
+        extraction.language = this.options.language;
+        return extraction;
     }
 
     // Based on the blocks, create the source and answer areas
