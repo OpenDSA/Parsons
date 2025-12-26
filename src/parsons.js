@@ -119,7 +119,7 @@ export default class Parsons extends RunestoneBase {
         // Initialize blocks for PIF mode or check server for regular mode
         if (this.pifMode) {
             // Initialize blocks directly in PIF mode
-            this.initializeAreas(this.blocksFromSource(), [], {});
+            this.initializeAreas(this.blocksFromSource(), this.fixedBlocks(), {});
             this.initializeInteractivity();
         } else {
             // Check the server for an answer to complete things
@@ -155,7 +155,13 @@ export default class Parsons extends RunestoneBase {
         } else {
             options.grader = "line"; // default
         }
-        options.maxdist = pifOptions.maxdist || 0;
+        if (Object.prototype.hasOwnProperty.call(pifOptions, "maxdist")) {
+            const parsedMaxdist = Number(pifOptions.maxdist);
+            // Treat non-positive as "show all distractors" by leaving undefined
+            if (Number.isFinite(parsedMaxdist) && parsedMaxdist > 0) {
+                options.maxdist = parsedMaxdist;
+            }
+        }
         options.order = pifOptions.order || undefined;
         options.noindent = !pifOptions.indent; // Note: PIF uses 'indent', Parsons uses 'noindent'
         options.adaptive = pifOptions.adaptive || false;
@@ -291,8 +297,11 @@ export default class Parsons extends RunestoneBase {
             // Determine if it's a distractor - handle empty strings and various formats
             const blockType = (pifBlock.type || "").trim();
             const blockDepends = (pifBlock.depends || "").trim();
-            const isDistractor = blockType === "distractor" || 
-                               blockDepends === "-1";
+            const isDistractor = blockType === "distractor" || blockDepends === "-1";
+            const isFixed =
+                blockType === "fixed" ||
+                (typeof pifBlock.tag === "string" && pifBlock.tag.trim() === "fixed");
+        
             
             // Create ParsonsLine from PIF block with safe defaults
             const blockText = (pifBlock.text || "").toString().trim();
@@ -324,9 +333,10 @@ export default class Parsons extends RunestoneBase {
             }
             line.distractor = isDistractor;
             line.distractHelpText = 
-            line.paired = false; // PIF doesn't seem to use paired distractors
+            line.paired = Boolean(pifBlock.paired); // Respect paired flag if present
             line.groupWithNext = false; // Each PIF block is typically a separate draggable unit
-            if(pifBlock.feedback.length !== 0){
+            line.fixed = isFixed;
+            if (pifBlock.feedback && pifBlock.feedback.length !== 0){
                 line.distractHelptext = pifBlock.feedback;
             }
             
@@ -352,8 +362,8 @@ export default class Parsons extends RunestoneBase {
                 }
             }
             
-            // Add to solution if not distractor
-            if (!line.distractor) {
+            // Add to solution if not distractor and not fixed
+            if (!line.distractor && !line.fixed) {
                 solution.push(line);
             }
             
@@ -660,10 +670,14 @@ export default class Parsons extends RunestoneBase {
         // Create blocks property as the sum of the two
         var blocks = [];
         var i, block;
+        console.log("[INIT AREAS] received sourceBlocks:", sourceBlocks.length, "answerBlocks:", answerBlocks.length);
         for (i = 0; i < sourceBlocks.length; i++) {
             block = sourceBlocks[i];
             blocks.push(block);
             this.sourceArea.appendChild(block.view);
+            if (block.fixed) {
+                console.log("[INIT AREAS] WARNING fixed block arrived in source:", block.lines[0].text);
+            }
         }
         for (i = 0; i < answerBlocks.length; i++) {
             block = answerBlocks[i];
@@ -671,6 +685,40 @@ export default class Parsons extends RunestoneBase {
             this.answerArea.appendChild(block.view);
         }
         this.blocks = blocks;
+        // Track first and last fixed blocks for placement constraints
+        this.firstFixedBlock = null;
+        this.lastFixedBlock = null;
+        var fixedBlocksList = [];
+        for (i = 0; i < answerBlocks.length; i++) {
+            if (answerBlocks[i].fixed) {
+                fixedBlocksList.push(answerBlocks[i]);
+            }
+        }
+        if (fixedBlocksList.length > 0) {
+            this.firstFixedBlock = fixedBlocksList[0];
+            this.lastFixedBlock = fixedBlocksList[fixedBlocksList.length - 1];
+            // Mark them for reference
+            this.firstFixedBlock.isFirstFixed = true;
+            this.lastFixedBlock.isLastFixed = true;
+        }
+        // Make fixed blocks non-interactive
+        for (i = 0; i < blocks.length; i++) {
+            block = blocks[i];
+            if (block.fixed) {
+                $(block.view).addClass("fixed-block");
+                if (block.disable) {
+                    block.disable();
+                }
+            }
+            // Add distractor styling
+            if (block.isDistractor()) {
+                $(block.view).addClass("distractor-block");
+                // Store feedback for later display if available
+                if (block.lines[0].distractHelptext) {
+                    block.distractorFeedback = block.lines[0].distractHelptext;
+                }
+            }
+        }
         // If present, disable some blocks
         var disabled = options.disabled;
         if (disabled !== undefined) {
@@ -810,15 +858,15 @@ export default class Parsons extends RunestoneBase {
                     }
                 }
             }
-            for (i = 0; i < pairedBins.length; i++) {
-                var pairedDiv = document.createElement("div");
-                $(pairedDiv).addClass("paired");
-                $(pairedDiv).html(
-                    "<span id= 'st' style = 'vertical-align: middle; font-weight: bold'>or{</span>"
-                );
-                pairedDivs.push(pairedDiv);
-                this.sourceArea.appendChild(pairedDiv);
-            }
+            // for (i = 0; i < pairedBins.length; i++) {
+            //     var pairedDiv = document.createElement("div");
+            //     $(pairedDiv).addClass("paired");
+            //     $(pairedDiv).html(
+            //         "<span id= 'st' style = 'vertical-align: middle; font-weight: bold'>or{</span>"
+            //     );
+            //     pairedDivs.push(pairedDiv);
+            //     this.sourceArea.appendChild(pairedDiv);
+            // }
         } else {
             pairedBins = [];
         }
@@ -934,11 +982,12 @@ export default class Parsons extends RunestoneBase {
             answerHash == undefined ||
             answerHash.length == 1
         ) {
-            await this.initializeAreas(this.blocksFromSource(), [], options);
-        } else {
+            await this.initializeAreas(this.blocksFromSource(), this.fixedBlocks(), options);
+        }
+         else {
             this.initializeAreas(
                 this.blocksFromHash(sourceHash),
-                this.blocksFromHash(answerHash),
+                this.fixedBlocks().concat(this.blocksFromHash(answerHash)),
                 options
             );
             this.grade = this.grader.grade();
@@ -1308,6 +1357,26 @@ export default class Parsons extends RunestoneBase {
         return combinedOutput;
     }
 
+    fixedBlocks() {
+        const blocks = [];
+        let current = [];
+        for (let i = 0; i < this.lines.length; i++) {
+            const line = this.lines[i];
+            if (!line.fixed) {
+                continue;
+            }
+            current.push(line);
+            if (!line.groupWithNext) {
+                blocks.push(new ParsonsBlock(this, current));
+                current = [];
+            }
+        }
+        if (current.length) {
+            blocks.push(new ParsonsBlock(this, current));
+        }
+        return blocks;
+    }
+
     // Return an array of code blocks based on what is specified in the problem
     blocksFromSource() {
         var unorderedBlocks = [];
@@ -1316,9 +1385,19 @@ export default class Parsons extends RunestoneBase {
         var lines = [];
         var block, line, i;
 
-        // Ensures that cloned blocks arent returned
+        // Ensures that cloned blocks arent returned; skip fixed lines (handled separately)
         for (i = 0; i < this.lines.length; i++) {
             line = this.lines[i];
+            if (line.fixed) {
+                if (lines.length > 0) {
+                    block = new ParsonsBlock(this, lines);
+                    if (!block.isClone()) {
+                        unorderedBlocks.push(block);
+                    }
+                    lines = [];
+                }
+                continue;
+            }
             lines.push(line);
             if (!line.groupWithNext) {
                 block = new ParsonsBlock(this, lines);
@@ -1328,10 +1407,16 @@ export default class Parsons extends RunestoneBase {
                 lines = [];
             }
         }
+        if (lines.length > 0) {
+            block = new ParsonsBlock(this, lines);
+            if (!block.isClone()) {
+                unorderedBlocks.push(block);
+            }
+        }
         originalBlocks = unorderedBlocks;
-        // Trim the distractors
+        // Trim the distractors (only if maxdist is set and greater than 0)
         var removedBlocks = [];
-        if (this.options.maxdist !== undefined) {
+        if (this.options.maxdist !== undefined && this.options.maxdist > 0) {
             var maxdist = this.options.maxdist;
             var distractors = [];
             for (i = 0; i < unorderedBlocks.length; i++) {
@@ -1580,11 +1665,16 @@ export default class Parsons extends RunestoneBase {
     }
 
     // Return array of codelines based on what is in the answer field
+    // Excludes fixed blocks since they are not part of grading
     answerLines() {
         var answerLines = [];
         var blocks = this.answerBlocks();
         for (var i = 0; i < blocks.length; i++) {
             var block = blocks[i];
+            // Skip fixed blocks - they are not graded
+            if (block.fixed) {
+                continue;
+            }
             for (var j = 0; j < block.lines.length; j++) {
                 answerLines.push(block.lines[j]);
             }
@@ -1757,6 +1847,10 @@ export default class Parsons extends RunestoneBase {
             var notInSolution = [];
             for (let i = 0; i < answerBlocks.length; i++) {
                 var block = answerBlocks[i];
+                // Skip fixed blocks - they are not part of grading
+                if (block.fixed) {
+                    continue;
+                }
                 var index = this.solution.indexOf(block.lines[0]);
                 if (index == -1) {
                     notInSolution.push(block);
@@ -1776,8 +1870,23 @@ export default class Parsons extends RunestoneBase {
             feedbackArea.fadeIn(500);
             feedbackArea.attr("class", "alert alert-danger");
             if (this.showfeedback === true) {
+                var distractorFeedbacks = [];
                 for (let i = 0; i < notInSolution.length; i++) {
                     $(notInSolution[i].view).addClass("incorrectPosition");
+                    // Check if it's a distractor with feedback
+                    if (notInSolution[i].isDistractor() && notInSolution[i].lines[0].distractHelptext) {
+                        distractorFeedbacks.push(notInSolution[i].lines[0].distractHelptext);
+                    }
+                }
+                // Display distractor-specific feedback if available
+                if (distractorFeedbacks.length > 0) {
+                    var feedbackHtml = $.i18n("msg_parson_wrong_order") + "<br><br><strong>Feedback:</strong><ul>";
+                    for (let i = 0; i < distractorFeedbacks.length; i++) {
+                        feedbackHtml += "<li>" + distractorFeedbacks[i] + "</li>";
+                    }
+                    feedbackHtml += "</ul>";
+                    feedbackArea.html(feedbackHtml);
+                    return;
                 }
             }
             feedbackArea.html($.i18n("msg_parson_wrong_order"));
@@ -1855,7 +1964,7 @@ export default class Parsons extends RunestoneBase {
         var block;
         for (let i = 0; i < blocks.length; i++) {
             block = blocks[i];
-            console.log("within enabled Asnwer Blocks");
+            console.log("within enabled Answer Blocks");
             if (block.isDistractor()) {
                 return block;
             }
@@ -2736,18 +2845,23 @@ export default class Parsons extends RunestoneBase {
                             y - positionTop <
                             (movingHeight + $(block.view).outerHeight(true)) / 2
                         ) {
-                            hasInserted = true;
-                            this.answerArea.insertBefore(
-                                this.moving.view,
-                                block.view
-                            );
-                            $(this.moving.view).css({
-                                left: x,
-                                top: y - movingHeight / 2,
-                                width: baseWidth,
-                                "z-index": 3,
-                            });
-                            positionTop = positionTop + movingHeight;
+                            // Don't insert before the first fixed block
+                            if (block.isFirstFixed) {
+                                // Skip - can't place before first fixed block
+                            } else {
+                                hasInserted = true;
+                                this.answerArea.insertBefore(
+                                    this.moving.view,
+                                    block.view
+                                );
+                                $(this.moving.view).css({
+                                    left: x,
+                                    top: y - movingHeight / 2,
+                                    width: baseWidth,
+                                    "z-index": 3,
+                                });
+                                positionTop = positionTop + movingHeight;
+                            }
                         }
                     }
                     indent = block.indent * this.options.pixelsPerIndent;
@@ -2760,9 +2874,17 @@ export default class Parsons extends RunestoneBase {
                     positionTop = positionTop + $(block.view).outerHeight(true);
                 }
                 if (!hasInserted) {
-                    $(this.moving.view).appendTo(
-                        "#" + this.counterId + "-answer"
-                    );
+                    // Check if last block is the last fixed block - insert before it if so
+                    if (this.lastFixedBlock && blocks.length > 0 && blocks[blocks.length - 1].isLastFixed) {
+                        this.answerArea.insertBefore(
+                            this.moving.view,
+                            this.lastFixedBlock.view
+                        );
+                    } else {
+                        $(this.moving.view).appendTo(
+                            "#" + this.counterId + "-answer"
+                        );
+                    }
                     $(this.moving.view).css({
                         left: x,
                         top: y - $(this.moving.view).outerHeight(true) / 2,
@@ -2936,7 +3058,7 @@ export default class Parsons extends RunestoneBase {
             );
             localStorage.setItem(this.adaptiveId + "Solved", false);
         }
-        this.initializeAreas(this.blocksFromSource(), [], {});
+        this.initializeAreas(this.blocksFromSource(), this.fixedBlocks(), {});
         this.initializeInteractivity();
         document.body.scrollTop = scrollTop;
         if (this.runnableDiv) {

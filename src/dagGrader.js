@@ -118,6 +118,22 @@ export default class DAGGrader extends LineBasedGrader {
         return this.incorrectIndents == 0;
     }
 
+    // Helper function to check if a dependency is satisfied
+    // Supports prefix matching: depends "myblocklist" matches tag "myblocklist-onea"
+    dependencySatisfied(seen, dependency) {
+        // Exact match
+        if (seen.has(dependency)) {
+            return true;
+        }
+        // Prefix match: check if any tag in seen starts with the dependency
+        for (let tag of seen) {
+            if (tag.startsWith(dependency + "-")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     checkCorrectOrdering(solutionLines, answerLines) {
         if (!isDirectedAcyclicGraph(graphToNX(solutionLines))) {
             throw "Dependency between blocks does not form a Directed Acyclic Graph;"
@@ -135,7 +151,7 @@ export default class DAGGrader extends LineBasedGrader {
                 isCorrectOrder = false;
             } else {
                 for (let j = 0; j < line.depends.length; j++) {
-                    if (!seen.has(line.depends[j])) {
+                    if (!this.dependencySatisfied(seen, line.depends[j])) {
                         isCorrectOrder = false;
                     }
                 }

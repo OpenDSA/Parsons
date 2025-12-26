@@ -137,6 +137,7 @@ export default class ParsonsLine {
         cloned.reusable = this.reusable;
         cloned.distractor = this.distractor;
         cloned.paired = this.paired;
+        cloned.fixed = this.fixed;
         cloned.groupWithNext = this.groupWithNext;
         cloned.isCloneLine = true;
         return cloned;
