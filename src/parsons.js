@@ -701,6 +701,25 @@ export default class Parsons extends RunestoneBase {
             this.firstFixedBlock.isFirstFixed = true;
             this.lastFixedBlock.isLastFixed = true;
         }
+        // Create drop zones between fixed blocks
+        this.dropZones = [];
+        if (fixedBlocksList.length >= 2) {
+            for (let idx = 0; idx < fixedBlocksList.length - 1; idx++) {
+                var dropZone = document.createElement("div");
+                $(dropZone).addClass("drop-zone");
+                dropZone.id = this.counterId + "-dropzone-" + idx;
+                // Insert drop zone after the current fixed block
+                var currentFixed = fixedBlocksList[idx];
+                var nextFixed = fixedBlocksList[idx + 1];
+                // Insert the drop zone into the answer area - position will be set in updateView
+                this.answerArea.insertBefore(dropZone, nextFixed.view);
+                this.dropZones.push({
+                    element: dropZone,
+                    afterBlock: currentFixed,
+                    beforeBlock: nextFixed
+                });
+            }
+        }
         // Make fixed blocks non-interactive
         for (i = 0; i < blocks.length; i++) {
             block = blocks[i];
@@ -2838,8 +2857,25 @@ export default class Parsons extends RunestoneBase {
                     this.answerArea.getBoundingClientRect().top -
                     window.pageYOffset;
                 this.moving.indent = movingIndent;
+                var inDropZone = false;
+                var currentDropZoneIndex = -1;
                 for (i = 0; i < blocks.length; i++) {
                     block = blocks[i];
+
+                    // Check if we're at a fixed block that ends a drop zone
+                    if (this.dropZones) {
+                        for (let dz = 0; dz < this.dropZones.length; dz++) {
+                            if (this.dropZones[dz].beforeBlock === block) {
+                                if (inDropZone) {
+                                    positionTop += 8; // Bottom padding before next fixed block
+                                }
+                                inDropZone = false;
+                                currentDropZoneIndex = -1;
+                                break;
+                            }
+                        }
+                    }
+
                     if (!hasInserted) {
                         if (
                             y - positionTop <
@@ -2864,6 +2900,15 @@ export default class Parsons extends RunestoneBase {
                             }
                         }
                     }
+
+                    // Add top padding for first non-fixed block in drop zone
+                    if (!block.fixed && inDropZone && currentDropZoneIndex >= 0) {
+                        var prevBlock = blocks[i - 1];
+                        if (prevBlock && prevBlock.fixed) {
+                            positionTop += 5;
+                        }
+                    }
+
                     indent = block.indent * this.options.pixelsPerIndent;
                     $(block.view).css({
                         left: indent,
@@ -2872,6 +2917,23 @@ export default class Parsons extends RunestoneBase {
                         "z-index": 2,
                     });
                     positionTop = positionTop + $(block.view).outerHeight(true);
+
+                    // Check if this fixed block starts a drop zone
+                    if (block.fixed && this.dropZones) {
+                        for (let dz = 0; dz < this.dropZones.length; dz++) {
+                            if (this.dropZones[dz].afterBlock === block) {
+                                inDropZone = true;
+                                currentDropZoneIndex = dz;
+                                // Check if next block is the beforeBlock (meaning no blocks in between)
+                                var nextBlock = blocks[i + 1];
+                                if (nextBlock && nextBlock === this.dropZones[dz].beforeBlock) {
+                                    // Add minimum space for empty drop zone
+                                    positionTop += 48;
+                                }
+                                break;
+                            }
+                        }
+                    }
                 }
                 if (!hasInserted) {
                     // Check if last block is the last fixed block - insert before it if so
@@ -2893,9 +2955,37 @@ export default class Parsons extends RunestoneBase {
                     });
                 }
             } else {
+                var inDropZone = false;
+                var currentDropZoneIndex = -1;
                 for (let i = 0; i < blocks.length; i++) {
                     block = blocks[i];
                     indent = block.indent * this.options.pixelsPerIndent;
+
+                    // Check if we're entering a drop zone area (after a fixed block that starts a drop zone)
+                    if (this.dropZones) {
+                        for (let dz = 0; dz < this.dropZones.length; dz++) {
+                            if (this.dropZones[dz].beforeBlock === block) {
+                                // We're at the fixed block that ends this drop zone
+                                if (inDropZone) {
+                                    // Add bottom padding before the next fixed block
+                                    positionTop += 8;
+                                }
+                                inDropZone = false;
+                                currentDropZoneIndex = -1;
+                                break;
+                            }
+                        }
+                    }
+
+                    // If this is a non-fixed block and we just entered a drop zone, add top padding
+                    if (!block.fixed && inDropZone && currentDropZoneIndex >= 0) {
+                        // Check if this is the first non-fixed block in the drop zone
+                        var prevBlock = blocks[i - 1];
+                        if (prevBlock && prevBlock.fixed) {
+                            positionTop += 5; // Top padding inside drop zone
+                        }
+                    }
+
                     $(block.view).css({
                         left: indent,
                         top: positionTop,
@@ -2903,8 +2993,27 @@ export default class Parsons extends RunestoneBase {
                         "z-index": 2,
                     });
                     positionTop = positionTop + $(block.view).outerHeight(true);
+
+                    // Check if this fixed block starts a drop zone
+                    if (block.fixed && this.dropZones) {
+                        for (let dz = 0; dz < this.dropZones.length; dz++) {
+                            if (this.dropZones[dz].afterBlock === block) {
+                                inDropZone = true;
+                                currentDropZoneIndex = dz;
+                                // Check if next block is the beforeBlock (meaning no blocks in between)
+                                var nextBlock = blocks[i + 1];
+                                if (nextBlock && nextBlock === this.dropZones[dz].beforeBlock) {
+                                    // Add minimum space for empty drop zone
+                                    positionTop += 48;
+                                }
+                                break;
+                            }
+                        }
+                    }
                 }
             }
+            // Position drop zone backgrounds after all blocks are positioned
+            this.updateDropZoneBackgrounds(blocks, width);
         }
         // Update the Moving Area
         if (updateMoving) {
@@ -2996,6 +3105,39 @@ export default class Parsons extends RunestoneBase {
     }
 
     // Put all the blocks back into the source area, reshuffling as necessary
+    // Position drop zone backgrounds based on fixed block positions
+    updateDropZoneBackgrounds(blocks, width) {
+        if (!this.dropZones || this.dropZones.length === 0) {
+            return;
+        }
+        for (let dz = 0; dz < this.dropZones.length; dz++) {
+            var dzInfo = this.dropZones[dz];
+            var afterBlockTop = parseInt($(dzInfo.afterBlock.view).css("top")) || 0;
+            var afterBlockHeight = $(dzInfo.afterBlock.view).outerHeight(true);
+            var beforeBlockTop = parseInt($(dzInfo.beforeBlock.view).css("top")) || 0;
+
+            // Drop zone starts right after the fixed block above
+            var dzTop = afterBlockTop + afterBlockHeight;
+            // Drop zone ends right before the fixed block below
+            var dzHeight = beforeBlockTop - dzTop;
+
+            // Only show drop zone if there's space between fixed blocks
+            if (dzHeight > 5) {
+                $(dzInfo.element).css({
+                    left: 0,
+                    top: dzTop,
+                    width: "100%",
+                    height: dzHeight,
+                    display: "block",
+                });
+            } else {
+                $(dzInfo.element).css({
+                    display: "none",
+                });
+            }
+        }
+    }
+
     resetView() {
         // Clear everything
         this.clearFeedback();
@@ -3040,6 +3182,13 @@ export default class Parsons extends RunestoneBase {
         $(this.sourceArea).attr("style", "");
         $(this.answerArea).removeClass();
         $(this.answerArea).attr("style", "");
+        // Remove existing drop zones
+        if (this.dropZones) {
+            for (let i = 0; i < this.dropZones.length; i++) {
+                $(this.dropZones[i].element).detach();
+            }
+            this.dropZones = [];
+        }
         this.noindent = this.options.noindent;
         // Reinitialize
         if (this.hasSolved) {

@@ -193,6 +193,17 @@
     border-style: dashed;
     opacity: 0.85;
 }
+.parsons .drop-zone {
+    position: absolute;
+    border-radius: 5px;
+    background-color: rgba(255, 165, 0, 0.25);
+    border: none !important;
+    border-style: none !important;
+    box-sizing: border-box;
+    z-index: 0;
+    pointer-events: none;
+    outline: none !important;
+}
 .parsons .block.down {
     border: 2px solid black;
     padding: 4px 9px;
