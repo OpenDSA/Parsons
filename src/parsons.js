@@ -2793,16 +2793,78 @@ export default class Parsons extends RunestoneBase {
                 if (!binForBlock.includes(movingBin)) {
                     movingBin = -1;
                 }
+
+                // Build a map of which blocks are in groups and their positions
+                var groupTagForBlock = [];
+                var groupIndexForBlock = [];
+                for (i = 0; i < blocks.length; i++) {
+                    groupTagForBlock.push(blocks[i].isGroupedBlock ? blocks[i].groupTag : null);
+                    groupIndexForBlock.push(blocks[i].isGroupedBlock ? blocks[i].groupIndex : -1);
+                }
+
+                // Check if this is a grouped block - find its original position within its group
+                var groupInsertIndex = -1;
+                var isMovingGrouped = this.moving.isGroupedBlock && this.moving.groupTag;
+                if (isMovingGrouped) {
+                    var movingGroupTag = this.moving.groupTag;
+                    var movingGroupIndex = this.moving.groupIndex;
+
+                    // Find where in the blocks array this block should be inserted
+                    // based on its groupIndex relative to other group members
+                    for (i = 0; i < blocks.length; i++) {
+                        if (blocks[i].isGroupedBlock && blocks[i].groupTag === movingGroupTag) {
+                            // Found a group member
+                            if (blocks[i].groupIndex > movingGroupIndex) {
+                                // Insert before this block (it has a higher groupIndex)
+                                groupInsertIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                    // If we didn't find a spot (all existing members have lower groupIndex),
+                    // insert after the last group member
+                    if (groupInsertIndex === -1) {
+                        for (i = blocks.length - 1; i >= 0; i--) {
+                            if (blocks[i].isGroupedBlock && blocks[i].groupTag === movingGroupTag) {
+                                groupInsertIndex = i + 1;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Build insertPositions - exclude positions inside groups for non-grouped blocks
                 var insertPositions = [];
                 if (binForBlock.length == 0) {
                     insertPositions.push(0);
                 } else {
-                    if (movingBin == -1) {
-                        insertPositions.push(0);
-                    } else if (binForBlock[0] == movingBin) {
-                        insertPositions.push(0);
+                    // Check if position 0 is valid
+                    var pos0Valid = true;
+                    if (!isMovingGrouped && groupTagForBlock[0] !== null) {
+                        // Non-grouped block can't insert at start of a group unless it's the group start
+                        if (groupIndexForBlock[0] > 0) {
+                            pos0Valid = false;
+                        }
                     }
+                    if (pos0Valid) {
+                        if (movingBin == -1) {
+                            insertPositions.push(0);
+                        } else if (binForBlock[0] == movingBin) {
+                            insertPositions.push(0);
+                        }
+                    }
+
                     for (i = 1; i < blocks.length; i++) {
+                        // For non-grouped blocks, don't allow insertion between blocks of the same group
+                        if (!isMovingGrouped) {
+                            var prevGroupTag = groupTagForBlock[i - 1];
+                            var currGroupTag = groupTagForBlock[i];
+                            // If both belong to the same group, skip this position
+                            if (prevGroupTag !== null && prevGroupTag === currGroupTag) {
+                                continue;
+                            }
+                        }
+
                         if (binForBlock[i - 1] == movingBin) {
                             insertPositions.push(i);
                         } else if (binForBlock[i] == movingBin) {
@@ -2814,14 +2876,25 @@ export default class Parsons extends RunestoneBase {
                             insertPositions.push(i);
                         }
                     }
-                    if (movingBin == -1) {
-                        insertPositions.push(binForBlock.length);
-                    } else if (
-                        binForBlock[binForBlock.length - 1] == movingBin
-                    ) {
-                        insertPositions.push(binForBlock.length);
+
+                    // Check if end position is valid
+                    var endValid = true;
+                    if (!isMovingGrouped && blocks.length > 0) {
+                        var lastGroupTag = groupTagForBlock[blocks.length - 1];
+                        // Non-grouped can insert at end unless last block is mid-group
+                        // (This is actually always ok since it's after the group)
+                    }
+                    if (endValid) {
+                        if (movingBin == -1) {
+                            insertPositions.push(binForBlock.length);
+                        } else if (
+                            binForBlock[binForBlock.length - 1] == movingBin
+                        ) {
+                            insertPositions.push(binForBlock.length);
+                        }
                     }
                 }
+
                 var x =
                     this.movingX -
                     this.sourceArea.getBoundingClientRect().left -
@@ -2832,21 +2905,12 @@ export default class Parsons extends RunestoneBase {
                     this.movingY -
                     this.sourceArea.getBoundingClientRect().top -
                     window.pageYOffset;
-                for (i = 0; i < blocks.length; i++) {
-                    var item = blocks[i];
-                    var j;
-                    if (!hasInserted && insertPositions.includes(i)) {
-                        var testHeight = $(item.view).outerHeight(true);
-                        for (j = i + 1; j < blocks.length; j++) {
-                            if (insertPositions.includes(j)) {
-                                break;
-                            }
-                            testHeight += $(blocks[j].view).outerHeight(true);
-                        }
-                        if (
-                            y - positionTop < movingHeight + testHeight / 2 ||
-                            i == insertPositions[insertPositions.length - 1]
-                        ) {
+
+                // If grouped block, insert at its original position within the group
+                if (groupInsertIndex >= 0) {
+                    for (i = 0; i < blocks.length; i++) {
+                        var item = blocks[i];
+                        if (!hasInserted && i === groupInsertIndex) {
                             hasInserted = true;
                             this.sourceArea.insertBefore(
                                 this.moving.view,
@@ -2860,25 +2924,76 @@ export default class Parsons extends RunestoneBase {
                             });
                             positionTop = positionTop + movingHeight;
                         }
+                        $(item.view).css({
+                            left: 0,
+                            top: positionTop,
+                            width: baseWidth,
+                            "z-index": 2,
+                        });
+                        positionTop = positionTop + $(item.view).outerHeight(true);
                     }
-                    $(item.view).css({
-                        left: 0,
-                        top: positionTop,
-                        width: baseWidth,
-                        "z-index": 2,
-                    });
-                    positionTop = positionTop + $(item.view).outerHeight(true);
-                }
-                if (!hasInserted) {
-                    $(this.moving.view).appendTo(
-                        "#" + this.counterId + "-source"
-                    );
-                    $(this.moving.view).css({
-                        left: x,
-                        top: y - $(this.moving.view).outerHeight(true) / 2,
-                        width: baseWidth,
-                        "z-index": 3,
-                    });
+                    if (!hasInserted) {
+                        // Insert at the end (group is at the end)
+                        $(this.moving.view).appendTo(
+                            "#" + this.counterId + "-source"
+                        );
+                        $(this.moving.view).css({
+                            left: x,
+                            top: y - movingHeight / 2,
+                            width: baseWidth,
+                            "z-index": 3,
+                        });
+                    }
+                } else {
+                    // Normal insertion logic (non-grouped blocks)
+                    for (i = 0; i < blocks.length; i++) {
+                        var item = blocks[i];
+                        var j;
+                        if (!hasInserted && insertPositions.includes(i)) {
+                            var testHeight = $(item.view).outerHeight(true);
+                            for (j = i + 1; j < blocks.length; j++) {
+                                if (insertPositions.includes(j)) {
+                                    break;
+                                }
+                                testHeight += $(blocks[j].view).outerHeight(true);
+                            }
+                            if (
+                                y - positionTop < movingHeight + testHeight / 2 ||
+                                i == insertPositions[insertPositions.length - 1]
+                            ) {
+                                hasInserted = true;
+                                this.sourceArea.insertBefore(
+                                    this.moving.view,
+                                    item.view
+                                );
+                                $(this.moving.view).css({
+                                    left: x,
+                                    top: y - movingHeight / 2,
+                                    width: baseWidth,
+                                    "z-index": 3,
+                                });
+                                positionTop = positionTop + movingHeight;
+                            }
+                        }
+                        $(item.view).css({
+                            left: 0,
+                            top: positionTop,
+                            width: baseWidth,
+                            "z-index": 2,
+                        });
+                        positionTop = positionTop + $(item.view).outerHeight(true);
+                    }
+                    if (!hasInserted) {
+                        $(this.moving.view).appendTo(
+                            "#" + this.counterId + "-source"
+                        );
+                        $(this.moving.view).css({
+                            left: x,
+                            top: y - $(this.moving.view).outerHeight(true) / 2,
+                            width: baseWidth,
+                            "z-index": 3,
+                        });
+                    }
                 }
             } else {
                 for (var i = 0; i < blocks.length; i++) {
@@ -2967,8 +3082,13 @@ export default class Parsons extends RunestoneBase {
                         var firstBlock = matchingBlocks[0];
                         var lastBlock = matchingBlocks[matchingBlocks.length - 1];
 
-                        var topPos = parseInt($(firstBlock.view).css("top"));
-                        var bottomPos = parseInt($(lastBlock.view).css("top")) + $(lastBlock.view).outerHeight(true);
+                        // Get the actual block heights (without margin)
+                        var firstBlockTop = parseInt($(firstBlock.view).css("top"));
+                        var lastBlockTop = parseInt($(lastBlock.view).css("top"));
+                        var lastBlockHeight = $(lastBlock.view).outerHeight(false); // height without margin
+
+                        var topPos = firstBlockTop;
+                        var bottomPos = lastBlockTop + lastBlockHeight;
                         var height = bottomPos - topPos;
 
                         // Update the curly brace height
