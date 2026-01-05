@@ -729,10 +729,8 @@ export default class Parsons extends RunestoneBase {
                     block.disable();
                 }
             }
-            // Add distractor styling
+            // Store distractor feedback for later display if available
             if (block.isDistractor()) {
-                $(block.view).addClass("distractor-block");
-                // Store feedback for later display if available
                 if (block.lines[0].distractHelptext) {
                     block.distractorFeedback = block.lines[0].distractHelptext;
                 }
