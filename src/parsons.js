@@ -344,10 +344,22 @@ export default class Parsons extends RunestoneBase {
                 line.reusable = true;
                 this.hasReusable = true;
             }
+
+            // Store tag for all lines (needed for grouping)
+            line.tag = pifBlock.tag || "";
+
+            // Parse tag for grouping: tags like "myblocklist-onea" have group "myblocklist" and variant "onea"
+            if (line.tag && line.tag.includes('-')) {
+                const lastHyphenIndex = line.tag.lastIndexOf('-');
+                line.groupTag = line.tag.substring(0, lastHyphenIndex);
+                line.groupVariant = line.tag.substring(lastHyphenIndex + 1);
+            } else {
+                line.groupTag = null;
+                line.groupVariant = null;
+            }
+
             // Handle DAG grading
             if (this.options.grader === "dag" && !line.distractor) {
-                line.tag = pifBlock.tag || ("block-" + i);
-                
                 // Handle depends field
                 if (pifBlock.depends && pifBlock.depends.trim()) {
                     if (Array.isArray(pifBlock.depends)) {
@@ -670,7 +682,8 @@ export default class Parsons extends RunestoneBase {
         // Create blocks property as the sum of the two
         var blocks = [];
         var i, block;
-        console.log("[INIT AREAS] received sourceBlocks:", sourceBlocks.length, "answerBlocks:", answerBlocks.length);
+
+        // Process source blocks - append all blocks directly (grouping handled via overlay)
         for (i = 0; i < sourceBlocks.length; i++) {
             block = sourceBlocks[i];
             blocks.push(block);
@@ -902,6 +915,56 @@ export default class Parsons extends RunestoneBase {
 
         this.pairedBins = pairedBins;
         this.pairedDivs = pairedDivs;
+
+        // Create grouped blocks tracking and overlay divs
+        this.groupedBlocksMap = {}; // Map groupTag -> array of blocks
+        this.groupedDivs = []; // Array of overlay div elements
+
+        // Find all grouped blocks
+        for (i = 0; i < this.blocks.length; i++) {
+            block = this.blocks[i];
+            if (block.isGroupedBlock && block.groupTag) {
+                if (!this.groupedBlocksMap[block.groupTag]) {
+                    this.groupedBlocksMap[block.groupTag] = [];
+                }
+                this.groupedBlocksMap[block.groupTag].push(block);
+            }
+        }
+
+        // Create overlay div for each group
+        for (var gTag in this.groupedBlocksMap) {
+            if (this.groupedBlocksMap.hasOwnProperty(gTag)) {
+                var groupBlocks = this.groupedBlocksMap[gTag];
+                if (groupBlocks.length > 1) {
+                    var groupDiv = document.createElement("div");
+                    groupDiv.className = "grouped-blocks-overlay";
+                    groupDiv.setAttribute("data-group-tag", gTag);
+
+                    // Create the "or" indicator
+                    var orIndicator = document.createElement("div");
+                    orIndicator.className = "or-indicator";
+
+                    var orText = document.createElement("span");
+                    orText.className = "or-text";
+                    orText.textContent = "or";
+                    orIndicator.appendChild(orText);
+
+                    var curlyBrace = document.createElement("div");
+                    curlyBrace.className = "curly-brace";
+                    orIndicator.appendChild(curlyBrace);
+
+                    groupDiv.appendChild(orIndicator);
+
+                    this.sourceArea.appendChild(groupDiv);
+                    this.groupedDivs.push({
+                        element: groupDiv,
+                        groupTag: gTag,
+                        blocks: groupBlocks
+                    });
+                }
+            }
+        }
+
         if (this.options.numbered && this.options.numbered !== false) {
             this.addBlockLabels(sourceBlocks.concat(answerBlocks));
         }
@@ -1471,28 +1534,77 @@ export default class Parsons extends RunestoneBase {
         }
 
         if (this.options.order === undefined) {
-            // Shuffle, respecting paired distractors
+            // Shuffle, respecting grouped blocks (same groupTag) and paired distractors
             var chunks = [],
                 chunk = [];
+            var groupedChunks = {}; // Map groupTag -> array of blocks
+
+            // First pass: collect all blocks by groupTag to count group sizes
             for (i = 0; i < unorderedBlocks.length; i++) {
                 block = unorderedBlocks[i];
-                if (block.lines[0].paired && this.pairDistractors) {
-                    // William Li (August 2020)
+                var groupTag = block.lines[0].groupTag;
+
+                if (groupTag) {
+                    if (!groupedChunks[groupTag]) {
+                        groupedChunks[groupTag] = [];
+                    }
+                    groupedChunks[groupTag].push(block);
+                }
+            }
+
+            // Second pass: process blocks, treating single-block "groups" as regular blocks
+            for (i = 0; i < unorderedBlocks.length; i++) {
+                block = unorderedBlocks[i];
+                var groupTag = block.lines[0].groupTag;
+
+                // Only treat as grouped if there are 2+ blocks with the same groupTag
+                if (groupTag && groupedChunks[groupTag] && groupedChunks[groupTag].length > 1) {
+                    // Skip - will be handled when we process grouped chunks
+                    continue;
+                } else if (block.lines[0].paired && this.pairDistractors) {
+                    // William Li (August 2020) - paired distractors
                     chunk.push(block);
                 } else {
+                    // Regular ungrouped block (including single-block "groups")
                     chunk = [];
                     chunk.push(block);
                     chunks.push(chunk);
                 }
             }
+
+            // Add grouped blocks (2+ blocks) as chunks
+            for (var gTag in groupedChunks) {
+                if (groupedChunks.hasOwnProperty(gTag)) {
+                    var groupBlocks = groupedChunks[gTag];
+                    // Only create visual group if there are 2+ blocks
+                    if (groupBlocks.length > 1) {
+                        for (var gi = 0; gi < groupBlocks.length; gi++) {
+                            groupBlocks[gi].isGroupedBlock = true;
+                            groupBlocks[gi].groupTag = gTag;
+                            groupBlocks[gi].groupIndex = gi;
+                            groupBlocks[gi].groupSize = groupBlocks.length;
+                        }
+                        chunks.push(groupBlocks);
+                    }
+                }
+            }
+
             chunks = this.shuffled(chunks);
             for (i = 0; i < chunks.length; i++) {
                 chunk = chunks[i];
                 if (chunk.length > 1) {
-                    // shuffle paired distractors
-                    chunk = this.shuffled(chunk);
-                    for (j = 0; j < chunk.length; j++) {
-                        blocks.push(chunk[j]);
+                    // Check if this is a grouped chunk (don't shuffle within groups)
+                    if (chunk[0].isGroupedBlock) {
+                        // Keep grouped blocks in original order
+                        for (var j = 0; j < chunk.length; j++) {
+                            blocks.push(chunk[j]);
+                        }
+                    } else {
+                        // shuffle paired distractors
+                        chunk = this.shuffled(chunk);
+                        for (var j = 0; j < chunk.length; j++) {
+                            blocks.push(chunk[j]);
+                        }
                     }
                 } else {
                     blocks.push(chunk[0]);
@@ -2824,6 +2936,57 @@ export default class Parsons extends RunestoneBase {
                     $(div).html("");
                 }
             }
+
+            // Update the Grouped Blocks Indicators
+            if (this.groupedDivs) {
+                for (i = 0; i < this.groupedDivs.length; i++) {
+                    var groupInfo = this.groupedDivs[i];
+                    var groupDiv = groupInfo.element;
+                    var groupBlocks = groupInfo.blocks;
+
+                    // Find which blocks from this group are in the source area
+                    var matchingBlocks = [];
+                    for (j = 0; j < blocks.length; j++) {
+                        block = blocks[j];
+                        if (block.isGroupedBlock && block.groupTag === groupInfo.groupTag) {
+                            matchingBlocks.push(block);
+                        }
+                    }
+
+                    if (matchingBlocks.length < 2) {
+                        // Hide if less than 2 blocks from group are in source
+                        $(groupDiv).hide();
+                    } else {
+                        $(groupDiv).show();
+
+                        // Sort by their current position (top value)
+                        matchingBlocks.sort(function(a, b) {
+                            return parseInt($(a.view).css("top")) - parseInt($(b.view).css("top"));
+                        });
+
+                        var firstBlock = matchingBlocks[0];
+                        var lastBlock = matchingBlocks[matchingBlocks.length - 1];
+
+                        var topPos = parseInt($(firstBlock.view).css("top"));
+                        var bottomPos = parseInt($(lastBlock.view).css("top")) + $(lastBlock.view).outerHeight(true);
+                        var height = bottomPos - topPos;
+
+                        // Update the curly brace height
+                        var curlyBrace = groupDiv.querySelector('.curly-brace');
+                        if (curlyBrace) {
+                            curlyBrace.style.height = height + 'px';
+                        }
+
+                        $(groupDiv).css({
+                            position: 'absolute',
+                            left: -35,
+                            top: topPos,
+                            height: height,
+                            zIndex: 1
+                        });
+                    }
+                }
+            }
         }
         // Update the Answer Area
         if (updateAnswer) {
@@ -3177,6 +3340,14 @@ export default class Parsons extends RunestoneBase {
                 $(this.pairedDivs[i]).detach();
             }
         }
+        // Clean up grouped block overlays
+        if (this.groupedDivs) {
+            for (let i = 0; i < this.groupedDivs.length; i++) {
+                $(this.groupedDivs[i].element).detach();
+            }
+            this.groupedDivs = [];
+        }
+        this.groupedBlocksMap = {};
         $(this.sourceArea).attr("style", "");
         $(this.answerArea).removeClass();
         $(this.answerArea).attr("style", "");
