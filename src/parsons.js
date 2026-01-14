@@ -119,7 +119,7 @@ export default class Parsons extends RunestoneBase {
         // Initialize blocks for PIF mode or check server for regular mode
         if (this.pifMode) {
             // Initialize blocks directly in PIF mode
-            this.initializeAreas(this.blocksFromSource(), [], {});
+            this.initializeAreas(this.blocksFromSource(), this.fixedBlocks(), {});
             this.initializeInteractivity();
         } else {
             // Check the server for an answer to complete things
@@ -155,7 +155,13 @@ export default class Parsons extends RunestoneBase {
         } else {
             options.grader = "line"; // default
         }
-        options.maxdist = pifOptions.maxdist || 0;
+        if (Object.prototype.hasOwnProperty.call(pifOptions, "maxdist")) {
+            const parsedMaxdist = Number(pifOptions.maxdist);
+            // Treat non-positive as "show all distractors" by leaving undefined
+            if (Number.isFinite(parsedMaxdist) && parsedMaxdist > 0) {
+                options.maxdist = parsedMaxdist;
+            }
+        }
         options.order = pifOptions.order || undefined;
         options.noindent = !pifOptions.indent; // Note: PIF uses 'indent', Parsons uses 'noindent'
         options.adaptive = pifOptions.adaptive || false;
@@ -291,8 +297,11 @@ export default class Parsons extends RunestoneBase {
             // Determine if it's a distractor - handle empty strings and various formats
             const blockType = (pifBlock.type || "").trim();
             const blockDepends = (pifBlock.depends || "").trim();
-            const isDistractor = blockType === "distractor" || 
-                               blockDepends === "-1";
+            const isDistractor = blockType === "distractor" || blockDepends === "-1";
+            const isFixed =
+                blockType === "fixed" ||
+                (typeof pifBlock.tag === "string" && pifBlock.tag.trim() === "fixed");
+        
             
             // Create ParsonsLine from PIF block with safe defaults
             const blockText = (pifBlock.text || "").toString().trim();
@@ -324,9 +333,10 @@ export default class Parsons extends RunestoneBase {
             }
             line.distractor = isDistractor;
             line.distractHelpText = 
-            line.paired = false; // PIF doesn't seem to use paired distractors
+            line.paired = Boolean(pifBlock.paired); // Respect paired flag if present
             line.groupWithNext = false; // Each PIF block is typically a separate draggable unit
-            if(pifBlock.feedback.length !== 0){
+            line.fixed = isFixed;
+            if (pifBlock.feedback && pifBlock.feedback.length !== 0){
                 line.distractHelptext = pifBlock.feedback;
             }
             
@@ -334,10 +344,22 @@ export default class Parsons extends RunestoneBase {
                 line.reusable = true;
                 this.hasReusable = true;
             }
+
+            // Store tag for all lines (needed for grouping)
+            line.tag = pifBlock.tag || "";
+
+            // Parse tag for grouping: tags like "myblocklist-onea" have group "myblocklist" and variant "onea"
+            if (line.tag && line.tag.includes('-')) {
+                const lastHyphenIndex = line.tag.lastIndexOf('-');
+                line.groupTag = line.tag.substring(0, lastHyphenIndex);
+                line.groupVariant = line.tag.substring(lastHyphenIndex + 1);
+            } else {
+                line.groupTag = null;
+                line.groupVariant = null;
+            }
+
             // Handle DAG grading
             if (this.options.grader === "dag" && !line.distractor) {
-                line.tag = pifBlock.tag || ("block-" + i);
-                
                 // Handle depends field
                 if (pifBlock.depends && pifBlock.depends.trim()) {
                     if (Array.isArray(pifBlock.depends)) {
@@ -352,8 +374,8 @@ export default class Parsons extends RunestoneBase {
                 }
             }
             
-            // Add to solution if not distractor
-            if (!line.distractor) {
+            // Add to solution if not distractor and not fixed
+            if (!line.distractor && !line.fixed) {
                 solution.push(line);
             }
             
@@ -687,10 +709,15 @@ export default class Parsons extends RunestoneBase {
         // Create blocks property as the sum of the two
         var blocks = [];
         var i, block;
+
+        // Process source blocks - append all blocks directly (grouping handled via overlay)
         for (i = 0; i < sourceBlocks.length; i++) {
             block = sourceBlocks[i];
             blocks.push(block);
             this.sourceArea.appendChild(block.view);
+            if (block.fixed) {
+                console.log("[INIT AREAS] WARNING fixed block arrived in source:", block.lines[0].text);
+            }
         }
         for (i = 0; i < answerBlocks.length; i++) {
             block = answerBlocks[i];
@@ -698,6 +725,57 @@ export default class Parsons extends RunestoneBase {
             this.answerArea.appendChild(block.view);
         }
         this.blocks = blocks;
+        // Track first and last fixed blocks for placement constraints
+        this.firstFixedBlock = null;
+        this.lastFixedBlock = null;
+        var fixedBlocksList = [];
+        for (i = 0; i < answerBlocks.length; i++) {
+            if (answerBlocks[i].fixed) {
+                fixedBlocksList.push(answerBlocks[i]);
+            }
+        }
+        if (fixedBlocksList.length > 0) {
+            this.firstFixedBlock = fixedBlocksList[0];
+            this.lastFixedBlock = fixedBlocksList[fixedBlocksList.length - 1];
+            // Mark them for reference
+            this.firstFixedBlock.isFirstFixed = true;
+            this.lastFixedBlock.isLastFixed = true;
+        }
+        // Create drop zones between fixed blocks
+        this.dropZones = [];
+        if (fixedBlocksList.length >= 2) {
+            for (let idx = 0; idx < fixedBlocksList.length - 1; idx++) {
+                var dropZone = document.createElement("div");
+                $(dropZone).addClass("drop-zone");
+                dropZone.id = this.counterId + "-dropzone-" + idx;
+                // Insert drop zone after the current fixed block
+                var currentFixed = fixedBlocksList[idx];
+                var nextFixed = fixedBlocksList[idx + 1];
+                // Insert the drop zone into the answer area - position will be set in updateView
+                this.answerArea.insertBefore(dropZone, nextFixed.view);
+                this.dropZones.push({
+                    element: dropZone,
+                    afterBlock: currentFixed,
+                    beforeBlock: nextFixed
+                });
+            }
+        }
+        // Make fixed blocks non-interactive
+        for (i = 0; i < blocks.length; i++) {
+            block = blocks[i];
+            if (block.fixed) {
+                $(block.view).addClass("fixed-block");
+                if (block.disable) {
+                    block.disable();
+                }
+            }
+            // Store distractor feedback for later display if available
+            if (block.isDistractor()) {
+                if (block.lines[0].distractHelptext) {
+                    block.distractorFeedback = block.lines[0].distractHelptext;
+                }
+            }
+        }
         // If present, disable some blocks
         var disabled = options.disabled;
         if (disabled !== undefined) {
@@ -837,15 +915,15 @@ export default class Parsons extends RunestoneBase {
                     }
                 }
             }
-            for (i = 0; i < pairedBins.length; i++) {
-                var pairedDiv = document.createElement("div");
-                $(pairedDiv).addClass("paired");
-                $(pairedDiv).html(
-                    "<span id= 'st' style = 'vertical-align: middle; font-weight: bold'>or{</span>"
-                );
-                pairedDivs.push(pairedDiv);
-                this.sourceArea.appendChild(pairedDiv);
-            }
+            // for (i = 0; i < pairedBins.length; i++) {
+            //     var pairedDiv = document.createElement("div");
+            //     $(pairedDiv).addClass("paired");
+            //     $(pairedDiv).html(
+            //         "<span id= 'st' style = 'vertical-align: middle; font-weight: bold'>or{</span>"
+            //     );
+            //     pairedDivs.push(pairedDiv);
+            //     this.sourceArea.appendChild(pairedDiv);
+            // }
         } else {
             pairedBins = [];
         }
@@ -864,6 +942,56 @@ export default class Parsons extends RunestoneBase {
 
         this.pairedBins = pairedBins;
         this.pairedDivs = pairedDivs;
+
+        // Create grouped blocks tracking and overlay divs
+        this.groupedBlocksMap = {}; // Map groupTag -> array of blocks
+        this.groupedDivs = []; // Array of overlay div elements
+
+        // Find all grouped blocks
+        for (i = 0; i < this.blocks.length; i++) {
+            block = this.blocks[i];
+            if (block.isGroupedBlock && block.groupTag) {
+                if (!this.groupedBlocksMap[block.groupTag]) {
+                    this.groupedBlocksMap[block.groupTag] = [];
+                }
+                this.groupedBlocksMap[block.groupTag].push(block);
+            }
+        }
+
+        // Create overlay div for each group
+        for (var gTag in this.groupedBlocksMap) {
+            if (this.groupedBlocksMap.hasOwnProperty(gTag)) {
+                var groupBlocks = this.groupedBlocksMap[gTag];
+                if (groupBlocks.length > 1) {
+                    var groupDiv = document.createElement("div");
+                    groupDiv.className = "grouped-blocks-overlay";
+                    groupDiv.setAttribute("data-group-tag", gTag);
+
+                    // Create the "or" indicator
+                    var orIndicator = document.createElement("div");
+                    orIndicator.className = "or-indicator";
+
+                    var orText = document.createElement("span");
+                    orText.className = "or-text";
+                    orText.textContent = "or";
+                    orIndicator.appendChild(orText);
+
+                    var curlyBrace = document.createElement("div");
+                    curlyBrace.className = "curly-brace";
+                    orIndicator.appendChild(curlyBrace);
+
+                    groupDiv.appendChild(orIndicator);
+
+                    this.sourceArea.appendChild(groupDiv);
+                    this.groupedDivs.push({
+                        element: groupDiv,
+                        groupTag: gTag,
+                        blocks: groupBlocks
+                    });
+                }
+            }
+        }
+
         if (this.options.numbered && this.options.numbered !== false) {
             this.addBlockLabels(sourceBlocks.concat(answerBlocks));
         }
@@ -961,11 +1089,12 @@ export default class Parsons extends RunestoneBase {
             answerHash == undefined ||
             answerHash.length == 1
         ) {
-            await this.initializeAreas(this.blocksFromSource(), [], options);
-        } else {
+            await this.initializeAreas(this.blocksFromSource(), this.fixedBlocks(), options);
+        }
+         else {
             this.initializeAreas(
                 this.blocksFromHash(sourceHash),
-                this.blocksFromHash(answerHash),
+                this.fixedBlocks().concat(this.blocksFromHash(answerHash)),
                 options
             );
             this.grade = this.grader.grade();
@@ -1335,6 +1464,26 @@ export default class Parsons extends RunestoneBase {
         return combinedOutput;
     }
 
+    fixedBlocks() {
+        const blocks = [];
+        let current = [];
+        for (let i = 0; i < this.lines.length; i++) {
+            const line = this.lines[i];
+            if (!line.fixed) {
+                continue;
+            }
+            current.push(line);
+            if (!line.groupWithNext) {
+                blocks.push(new ParsonsBlock(this, current));
+                current = [];
+            }
+        }
+        if (current.length) {
+            blocks.push(new ParsonsBlock(this, current));
+        }
+        return blocks;
+    }
+
     // Return an array of code blocks based on what is specified in the problem
     blocksFromSource() {
         var unorderedBlocks = [];
@@ -1343,9 +1492,19 @@ export default class Parsons extends RunestoneBase {
         var lines = [];
         var block, line, i;
 
-        // Ensures that cloned blocks arent returned
+        // Ensures that cloned blocks arent returned; skip fixed lines (handled separately)
         for (i = 0; i < this.lines.length; i++) {
             line = this.lines[i];
+            if (line.fixed) {
+                if (lines.length > 0) {
+                    block = new ParsonsBlock(this, lines);
+                    if (!block.isClone()) {
+                        unorderedBlocks.push(block);
+                    }
+                    lines = [];
+                }
+                continue;
+            }
             lines.push(line);
             if (!line.groupWithNext) {
                 block = new ParsonsBlock(this, lines);
@@ -1355,10 +1514,16 @@ export default class Parsons extends RunestoneBase {
                 lines = [];
             }
         }
+        if (lines.length > 0) {
+            block = new ParsonsBlock(this, lines);
+            if (!block.isClone()) {
+                unorderedBlocks.push(block);
+            }
+        }
         originalBlocks = unorderedBlocks;
-        // Trim the distractors
+        // Trim the distractors (only if maxdist is set and greater than 0)
         var removedBlocks = [];
-        if (this.options.maxdist !== undefined) {
+        if (this.options.maxdist !== undefined && this.options.maxdist > 0) {
             var maxdist = this.options.maxdist;
             var distractors = [];
             for (i = 0; i < unorderedBlocks.length; i++) {
@@ -1396,28 +1561,77 @@ export default class Parsons extends RunestoneBase {
         }
 
         if (this.options.order === undefined) {
-            // Shuffle, respecting paired distractors
+            // Shuffle, respecting grouped blocks (same groupTag) and paired distractors
             var chunks = [],
                 chunk = [];
+            var groupedChunks = {}; // Map groupTag -> array of blocks
+
+            // First pass: collect all blocks by groupTag to count group sizes
             for (i = 0; i < unorderedBlocks.length; i++) {
                 block = unorderedBlocks[i];
-                if (block.lines[0].paired && this.pairDistractors) {
-                    // William Li (August 2020)
+                var groupTag = block.lines[0].groupTag;
+
+                if (groupTag) {
+                    if (!groupedChunks[groupTag]) {
+                        groupedChunks[groupTag] = [];
+                    }
+                    groupedChunks[groupTag].push(block);
+                }
+            }
+
+            // Second pass: process blocks, treating single-block "groups" as regular blocks
+            for (i = 0; i < unorderedBlocks.length; i++) {
+                block = unorderedBlocks[i];
+                var groupTag = block.lines[0].groupTag;
+
+                // Only treat as grouped if there are 2+ blocks with the same groupTag
+                if (groupTag && groupedChunks[groupTag] && groupedChunks[groupTag].length > 1) {
+                    // Skip - will be handled when we process grouped chunks
+                    continue;
+                } else if (block.lines[0].paired && this.pairDistractors) {
+                    // William Li (August 2020) - paired distractors
                     chunk.push(block);
                 } else {
+                    // Regular ungrouped block (including single-block "groups")
                     chunk = [];
                     chunk.push(block);
                     chunks.push(chunk);
                 }
             }
+
+            // Add grouped blocks (2+ blocks) as chunks
+            for (var gTag in groupedChunks) {
+                if (groupedChunks.hasOwnProperty(gTag)) {
+                    var groupBlocks = groupedChunks[gTag];
+                    // Only create visual group if there are 2+ blocks
+                    if (groupBlocks.length > 1) {
+                        for (var gi = 0; gi < groupBlocks.length; gi++) {
+                            groupBlocks[gi].isGroupedBlock = true;
+                            groupBlocks[gi].groupTag = gTag;
+                            groupBlocks[gi].groupIndex = gi;
+                            groupBlocks[gi].groupSize = groupBlocks.length;
+                        }
+                        chunks.push(groupBlocks);
+                    }
+                }
+            }
+
             chunks = this.shuffled(chunks);
             for (i = 0; i < chunks.length; i++) {
                 chunk = chunks[i];
                 if (chunk.length > 1) {
-                    // shuffle paired distractors
-                    chunk = this.shuffled(chunk);
-                    for (j = 0; j < chunk.length; j++) {
-                        blocks.push(chunk[j]);
+                    // Check if this is a grouped chunk (don't shuffle within groups)
+                    if (chunk[0].isGroupedBlock) {
+                        // Keep grouped blocks in original order
+                        for (var j = 0; j < chunk.length; j++) {
+                            blocks.push(chunk[j]);
+                        }
+                    } else {
+                        // shuffle paired distractors
+                        chunk = this.shuffled(chunk);
+                        for (var j = 0; j < chunk.length; j++) {
+                            blocks.push(chunk[j]);
+                        }
                     }
                 } else {
                     blocks.push(chunk[0]);
@@ -1607,11 +1821,16 @@ export default class Parsons extends RunestoneBase {
     }
 
     // Return array of codelines based on what is in the answer field
+    // Excludes fixed blocks since they are not part of grading
     answerLines() {
         var answerLines = [];
         var blocks = this.answerBlocks();
         for (var i = 0; i < blocks.length; i++) {
             var block = blocks[i];
+            // Skip fixed blocks - they are not graded
+            if (block.fixed) {
+                continue;
+            }
             for (var j = 0; j < block.lines.length; j++) {
                 answerLines.push(block.lines[j]);
             }
@@ -1784,6 +2003,10 @@ export default class Parsons extends RunestoneBase {
             var notInSolution = [];
             for (let i = 0; i < answerBlocks.length; i++) {
                 var block = answerBlocks[i];
+                // Skip fixed blocks - they are not part of grading
+                if (block.fixed) {
+                    continue;
+                }
                 var index = this.solution.indexOf(block.lines[0]);
                 if (index == -1) {
                     notInSolution.push(block);
@@ -1803,8 +2026,23 @@ export default class Parsons extends RunestoneBase {
             feedbackArea.fadeIn(500);
             feedbackArea.attr("class", "alert alert-danger");
             if (this.showfeedback === true) {
+                var distractorFeedbacks = [];
                 for (let i = 0; i < notInSolution.length; i++) {
                     $(notInSolution[i].view).addClass("incorrectPosition");
+                    // Check if it's a distractor with feedback
+                    if (notInSolution[i].isDistractor() && notInSolution[i].lines[0].distractHelptext) {
+                        distractorFeedbacks.push(notInSolution[i].lines[0].distractHelptext);
+                    }
+                }
+                // Display distractor-specific feedback if available
+                if (distractorFeedbacks.length > 0) {
+                    var feedbackHtml = $.i18n("msg_parson_wrong_order") + "<br><br><strong>Feedback:</strong><ul>";
+                    for (let i = 0; i < distractorFeedbacks.length; i++) {
+                        feedbackHtml += "<li>" + distractorFeedbacks[i] + "</li>";
+                    }
+                    feedbackHtml += "</ul>";
+                    feedbackArea.html(feedbackHtml);
+                    return;
                 }
             }
             feedbackArea.html($.i18n("msg_parson_wrong_order"));
@@ -1882,7 +2120,7 @@ export default class Parsons extends RunestoneBase {
         var block;
         for (let i = 0; i < blocks.length; i++) {
             block = blocks[i];
-            console.log("within enabled Asnwer Blocks");
+            console.log("within enabled Answer Blocks");
             if (block.isDistractor()) {
                 return block;
             }
@@ -2582,16 +2820,78 @@ export default class Parsons extends RunestoneBase {
                 if (!binForBlock.includes(movingBin)) {
                     movingBin = -1;
                 }
+
+                // Build a map of which blocks are in groups and their positions
+                var groupTagForBlock = [];
+                var groupIndexForBlock = [];
+                for (i = 0; i < blocks.length; i++) {
+                    groupTagForBlock.push(blocks[i].isGroupedBlock ? blocks[i].groupTag : null);
+                    groupIndexForBlock.push(blocks[i].isGroupedBlock ? blocks[i].groupIndex : -1);
+                }
+
+                // Check if this is a grouped block - find its original position within its group
+                var groupInsertIndex = -1;
+                var isMovingGrouped = this.moving.isGroupedBlock && this.moving.groupTag;
+                if (isMovingGrouped) {
+                    var movingGroupTag = this.moving.groupTag;
+                    var movingGroupIndex = this.moving.groupIndex;
+
+                    // Find where in the blocks array this block should be inserted
+                    // based on its groupIndex relative to other group members
+                    for (i = 0; i < blocks.length; i++) {
+                        if (blocks[i].isGroupedBlock && blocks[i].groupTag === movingGroupTag) {
+                            // Found a group member
+                            if (blocks[i].groupIndex > movingGroupIndex) {
+                                // Insert before this block (it has a higher groupIndex)
+                                groupInsertIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                    // If we didn't find a spot (all existing members have lower groupIndex),
+                    // insert after the last group member
+                    if (groupInsertIndex === -1) {
+                        for (i = blocks.length - 1; i >= 0; i--) {
+                            if (blocks[i].isGroupedBlock && blocks[i].groupTag === movingGroupTag) {
+                                groupInsertIndex = i + 1;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Build insertPositions - exclude positions inside groups for non-grouped blocks
                 var insertPositions = [];
                 if (binForBlock.length == 0) {
                     insertPositions.push(0);
                 } else {
-                    if (movingBin == -1) {
-                        insertPositions.push(0);
-                    } else if (binForBlock[0] == movingBin) {
-                        insertPositions.push(0);
+                    // Check if position 0 is valid
+                    var pos0Valid = true;
+                    if (!isMovingGrouped && groupTagForBlock[0] !== null) {
+                        // Non-grouped block can't insert at start of a group unless it's the group start
+                        if (groupIndexForBlock[0] > 0) {
+                            pos0Valid = false;
+                        }
                     }
+                    if (pos0Valid) {
+                        if (movingBin == -1) {
+                            insertPositions.push(0);
+                        } else if (binForBlock[0] == movingBin) {
+                            insertPositions.push(0);
+                        }
+                    }
+
                     for (i = 1; i < blocks.length; i++) {
+                        // For non-grouped blocks, don't allow insertion between blocks of the same group
+                        if (!isMovingGrouped) {
+                            var prevGroupTag = groupTagForBlock[i - 1];
+                            var currGroupTag = groupTagForBlock[i];
+                            // If both belong to the same group, skip this position
+                            if (prevGroupTag !== null && prevGroupTag === currGroupTag) {
+                                continue;
+                            }
+                        }
+
                         if (binForBlock[i - 1] == movingBin) {
                             insertPositions.push(i);
                         } else if (binForBlock[i] == movingBin) {
@@ -2603,14 +2903,25 @@ export default class Parsons extends RunestoneBase {
                             insertPositions.push(i);
                         }
                     }
-                    if (movingBin == -1) {
-                        insertPositions.push(binForBlock.length);
-                    } else if (
-                        binForBlock[binForBlock.length - 1] == movingBin
-                    ) {
-                        insertPositions.push(binForBlock.length);
+
+                    // Check if end position is valid
+                    var endValid = true;
+                    if (!isMovingGrouped && blocks.length > 0) {
+                        var lastGroupTag = groupTagForBlock[blocks.length - 1];
+                        // Non-grouped can insert at end unless last block is mid-group
+                        // (This is actually always ok since it's after the group)
+                    }
+                    if (endValid) {
+                        if (movingBin == -1) {
+                            insertPositions.push(binForBlock.length);
+                        } else if (
+                            binForBlock[binForBlock.length - 1] == movingBin
+                        ) {
+                            insertPositions.push(binForBlock.length);
+                        }
                     }
                 }
+
                 var x =
                     this.movingX -
                     this.sourceArea.getBoundingClientRect().left -
@@ -2621,21 +2932,12 @@ export default class Parsons extends RunestoneBase {
                     this.movingY -
                     this.sourceArea.getBoundingClientRect().top -
                     window.pageYOffset;
-                for (i = 0; i < blocks.length; i++) {
-                    var item = blocks[i];
-                    var j;
-                    if (!hasInserted && insertPositions.includes(i)) {
-                        var testHeight = $(item.view).outerHeight(true);
-                        for (j = i + 1; j < blocks.length; j++) {
-                            if (insertPositions.includes(j)) {
-                                break;
-                            }
-                            testHeight += $(blocks[j].view).outerHeight(true);
-                        }
-                        if (
-                            y - positionTop < movingHeight + testHeight / 2 ||
-                            i == insertPositions[insertPositions.length - 1]
-                        ) {
+
+                // If grouped block, insert at its original position within the group
+                if (groupInsertIndex >= 0) {
+                    for (i = 0; i < blocks.length; i++) {
+                        var item = blocks[i];
+                        if (!hasInserted && i === groupInsertIndex) {
                             hasInserted = true;
                             this.sourceArea.insertBefore(
                                 this.moving.view,
@@ -2649,25 +2951,76 @@ export default class Parsons extends RunestoneBase {
                             });
                             positionTop = positionTop + movingHeight;
                         }
+                        $(item.view).css({
+                            left: 0,
+                            top: positionTop,
+                            width: baseWidth,
+                            "z-index": 2,
+                        });
+                        positionTop = positionTop + $(item.view).outerHeight(true);
                     }
-                    $(item.view).css({
-                        left: 0,
-                        top: positionTop,
-                        width: baseWidth,
-                        "z-index": 2,
-                    });
-                    positionTop = positionTop + $(item.view).outerHeight(true);
-                }
-                if (!hasInserted) {
-                    $(this.moving.view).appendTo(
-                        "#" + this.counterId + "-source"
-                    );
-                    $(this.moving.view).css({
-                        left: x,
-                        top: y - $(this.moving.view).outerHeight(true) / 2,
-                        width: baseWidth,
-                        "z-index": 3,
-                    });
+                    if (!hasInserted) {
+                        // Insert at the end (group is at the end)
+                        $(this.moving.view).appendTo(
+                            "#" + this.counterId + "-source"
+                        );
+                        $(this.moving.view).css({
+                            left: x,
+                            top: y - movingHeight / 2,
+                            width: baseWidth,
+                            "z-index": 3,
+                        });
+                    }
+                } else {
+                    // Normal insertion logic (non-grouped blocks)
+                    for (i = 0; i < blocks.length; i++) {
+                        var item = blocks[i];
+                        var j;
+                        if (!hasInserted && insertPositions.includes(i)) {
+                            var testHeight = $(item.view).outerHeight(true);
+                            for (j = i + 1; j < blocks.length; j++) {
+                                if (insertPositions.includes(j)) {
+                                    break;
+                                }
+                                testHeight += $(blocks[j].view).outerHeight(true);
+                            }
+                            if (
+                                y - positionTop < movingHeight + testHeight / 2 ||
+                                i == insertPositions[insertPositions.length - 1]
+                            ) {
+                                hasInserted = true;
+                                this.sourceArea.insertBefore(
+                                    this.moving.view,
+                                    item.view
+                                );
+                                $(this.moving.view).css({
+                                    left: x,
+                                    top: y - movingHeight / 2,
+                                    width: baseWidth,
+                                    "z-index": 3,
+                                });
+                                positionTop = positionTop + movingHeight;
+                            }
+                        }
+                        $(item.view).css({
+                            left: 0,
+                            top: positionTop,
+                            width: baseWidth,
+                            "z-index": 2,
+                        });
+                        positionTop = positionTop + $(item.view).outerHeight(true);
+                    }
+                    if (!hasInserted) {
+                        $(this.moving.view).appendTo(
+                            "#" + this.counterId + "-source"
+                        );
+                        $(this.moving.view).css({
+                            left: x,
+                            top: y - $(this.moving.view).outerHeight(true) / 2,
+                            width: baseWidth,
+                            "z-index": 3,
+                        });
+                    }
                 }
             } else {
                 for (var i = 0; i < blocks.length; i++) {
@@ -2725,6 +3078,62 @@ export default class Parsons extends RunestoneBase {
                     $(div).html("");
                 }
             }
+
+            // Update the Grouped Blocks Indicators
+            if (this.groupedDivs) {
+                for (i = 0; i < this.groupedDivs.length; i++) {
+                    var groupInfo = this.groupedDivs[i];
+                    var groupDiv = groupInfo.element;
+                    var groupBlocks = groupInfo.blocks;
+
+                    // Find which blocks from this group are in the source area
+                    var matchingBlocks = [];
+                    for (j = 0; j < blocks.length; j++) {
+                        block = blocks[j];
+                        if (block.isGroupedBlock && block.groupTag === groupInfo.groupTag) {
+                            matchingBlocks.push(block);
+                        }
+                    }
+
+                    if (matchingBlocks.length < 2) {
+                        // Hide if less than 2 blocks from group are in source
+                        $(groupDiv).hide();
+                    } else {
+                        $(groupDiv).show();
+
+                        // Sort by their current position (top value)
+                        matchingBlocks.sort(function(a, b) {
+                            return parseInt($(a.view).css("top")) - parseInt($(b.view).css("top"));
+                        });
+
+                        var firstBlock = matchingBlocks[0];
+                        var lastBlock = matchingBlocks[matchingBlocks.length - 1];
+
+                        // Get the actual block heights (without margin)
+                        var firstBlockTop = parseInt($(firstBlock.view).css("top"));
+                        var lastBlockTop = parseInt($(lastBlock.view).css("top"));
+                        var lastBlockHeight = $(lastBlock.view).outerHeight(false); // height without margin
+
+                        var topPos = firstBlockTop;
+                        var bottomPos = lastBlockTop + lastBlockHeight;
+                        var height = bottomPos - topPos;
+
+                        // Update the curly brace height
+                        var curlyBrace = groupDiv.querySelector('.curly-brace');
+                        if (curlyBrace) {
+                            curlyBrace.style.height = height + 'px';
+                        }
+
+                        $(groupDiv).css({
+                            position: 'absolute',
+                            left: -35,
+                            top: topPos,
+                            height: height,
+                            zIndex: 1
+                        });
+                    }
+                }
+            }
         }
         // Update the Answer Area
         if (updateAnswer) {
@@ -2756,27 +3165,58 @@ export default class Parsons extends RunestoneBase {
                     this.answerArea.getBoundingClientRect().top -
                     window.pageYOffset;
                 this.moving.indent = movingIndent;
+                var inDropZone = false;
+                var currentDropZoneIndex = -1;
                 for (i = 0; i < blocks.length; i++) {
                     block = blocks[i];
+
+                    // Check if we're at a fixed block that ends a drop zone
+                    if (this.dropZones) {
+                        for (let dz = 0; dz < this.dropZones.length; dz++) {
+                            if (this.dropZones[dz].beforeBlock === block) {
+                                if (inDropZone) {
+                                    positionTop += 8; // Bottom padding before next fixed block
+                                }
+                                inDropZone = false;
+                                currentDropZoneIndex = -1;
+                                break;
+                            }
+                        }
+                    }
+
                     if (!hasInserted) {
                         if (
                             y - positionTop <
                             (movingHeight + $(block.view).outerHeight(true)) / 2
                         ) {
-                            hasInserted = true;
-                            this.answerArea.insertBefore(
-                                this.moving.view,
-                                block.view
-                            );
-                            $(this.moving.view).css({
-                                left: x,
-                                top: y - movingHeight / 2,
-                                width: baseWidth,
-                                "z-index": 3,
-                            });
-                            positionTop = positionTop + movingHeight;
+                            // Don't insert before the first fixed block
+                            if (block.isFirstFixed) {
+                                // Skip - can't place before first fixed block
+                            } else {
+                                hasInserted = true;
+                                this.answerArea.insertBefore(
+                                    this.moving.view,
+                                    block.view
+                                );
+                                $(this.moving.view).css({
+                                    left: x,
+                                    top: y - movingHeight / 2,
+                                    width: baseWidth,
+                                    "z-index": 3,
+                                });
+                                positionTop = positionTop + movingHeight;
+                            }
                         }
                     }
+
+                    // Add top padding for first non-fixed block in drop zone
+                    if (!block.fixed && inDropZone && currentDropZoneIndex >= 0) {
+                        var prevBlock = blocks[i - 1];
+                        if (prevBlock && prevBlock.fixed) {
+                            positionTop += 5;
+                        }
+                    }
+
                     indent = block.indent * this.options.pixelsPerIndent;
                     $(block.view).css({
                         left: indent,
@@ -2785,11 +3225,36 @@ export default class Parsons extends RunestoneBase {
                         "z-index": 2,
                     });
                     positionTop = positionTop + $(block.view).outerHeight(true);
+
+                    // Check if this fixed block starts a drop zone
+                    if (block.fixed && this.dropZones) {
+                        for (let dz = 0; dz < this.dropZones.length; dz++) {
+                            if (this.dropZones[dz].afterBlock === block) {
+                                inDropZone = true;
+                                currentDropZoneIndex = dz;
+                                // Check if next block is the beforeBlock (meaning no blocks in between)
+                                var nextBlock = blocks[i + 1];
+                                if (nextBlock && nextBlock === this.dropZones[dz].beforeBlock) {
+                                    // Add minimum space for empty drop zone
+                                    positionTop += 48;
+                                }
+                                break;
+                            }
+                        }
+                    }
                 }
                 if (!hasInserted) {
-                    $(this.moving.view).appendTo(
-                        "#" + this.counterId + "-answer"
-                    );
+                    // Check if last block is the last fixed block - insert before it if so
+                    if (this.lastFixedBlock && blocks.length > 0 && blocks[blocks.length - 1].isLastFixed) {
+                        this.answerArea.insertBefore(
+                            this.moving.view,
+                            this.lastFixedBlock.view
+                        );
+                    } else {
+                        $(this.moving.view).appendTo(
+                            "#" + this.counterId + "-answer"
+                        );
+                    }
                     $(this.moving.view).css({
                         left: x,
                         top: y - $(this.moving.view).outerHeight(true) / 2,
@@ -2798,9 +3263,37 @@ export default class Parsons extends RunestoneBase {
                     });
                 }
             } else {
+                var inDropZone = false;
+                var currentDropZoneIndex = -1;
                 for (let i = 0; i < blocks.length; i++) {
                     block = blocks[i];
                     indent = block.indent * this.options.pixelsPerIndent;
+
+                    // Check if we're entering a drop zone area (after a fixed block that starts a drop zone)
+                    if (this.dropZones) {
+                        for (let dz = 0; dz < this.dropZones.length; dz++) {
+                            if (this.dropZones[dz].beforeBlock === block) {
+                                // We're at the fixed block that ends this drop zone
+                                if (inDropZone) {
+                                    // Add bottom padding before the next fixed block
+                                    positionTop += 8;
+                                }
+                                inDropZone = false;
+                                currentDropZoneIndex = -1;
+                                break;
+                            }
+                        }
+                    }
+
+                    // If this is a non-fixed block and we just entered a drop zone, add top padding
+                    if (!block.fixed && inDropZone && currentDropZoneIndex >= 0) {
+                        // Check if this is the first non-fixed block in the drop zone
+                        var prevBlock = blocks[i - 1];
+                        if (prevBlock && prevBlock.fixed) {
+                            positionTop += 5; // Top padding inside drop zone
+                        }
+                    }
+
                     $(block.view).css({
                         left: indent,
                         top: positionTop,
@@ -2808,8 +3301,27 @@ export default class Parsons extends RunestoneBase {
                         "z-index": 2,
                     });
                     positionTop = positionTop + $(block.view).outerHeight(true);
+
+                    // Check if this fixed block starts a drop zone
+                    if (block.fixed && this.dropZones) {
+                        for (let dz = 0; dz < this.dropZones.length; dz++) {
+                            if (this.dropZones[dz].afterBlock === block) {
+                                inDropZone = true;
+                                currentDropZoneIndex = dz;
+                                // Check if next block is the beforeBlock (meaning no blocks in between)
+                                var nextBlock = blocks[i + 1];
+                                if (nextBlock && nextBlock === this.dropZones[dz].beforeBlock) {
+                                    // Add minimum space for empty drop zone
+                                    positionTop += 48;
+                                }
+                                break;
+                            }
+                        }
+                    }
                 }
             }
+            // Position drop zone backgrounds after all blocks are positioned
+            this.updateDropZoneBackgrounds(blocks, width);
         }
         // Update the Moving Area
         if (updateMoving) {
@@ -2901,6 +3413,39 @@ export default class Parsons extends RunestoneBase {
     }
 
     // Put all the blocks back into the source area, reshuffling as necessary
+    // Position drop zone backgrounds based on fixed block positions
+    updateDropZoneBackgrounds(blocks, width) {
+        if (!this.dropZones || this.dropZones.length === 0) {
+            return;
+        }
+        for (let dz = 0; dz < this.dropZones.length; dz++) {
+            var dzInfo = this.dropZones[dz];
+            var afterBlockTop = parseInt($(dzInfo.afterBlock.view).css("top")) || 0;
+            var afterBlockHeight = $(dzInfo.afterBlock.view).outerHeight(true);
+            var beforeBlockTop = parseInt($(dzInfo.beforeBlock.view).css("top")) || 0;
+
+            // Drop zone starts right after the fixed block above
+            var dzTop = afterBlockTop + afterBlockHeight;
+            // Drop zone ends right before the fixed block below
+            var dzHeight = beforeBlockTop - dzTop;
+
+            // Only show drop zone if there's space between fixed blocks
+            if (dzHeight > 5) {
+                $(dzInfo.element).css({
+                    left: 0,
+                    top: dzTop,
+                    width: "100%",
+                    height: dzHeight,
+                    display: "block",
+                });
+            } else {
+                $(dzInfo.element).css({
+                    display: "none",
+                });
+            }
+        }
+    }
+
     resetView() {
         // Clear everything
         this.clearFeedback();
@@ -2942,9 +3487,24 @@ export default class Parsons extends RunestoneBase {
                 $(this.pairedDivs[i]).detach();
             }
         }
+        // Clean up grouped block overlays
+        if (this.groupedDivs) {
+            for (let i = 0; i < this.groupedDivs.length; i++) {
+                $(this.groupedDivs[i].element).detach();
+            }
+            this.groupedDivs = [];
+        }
+        this.groupedBlocksMap = {};
         $(this.sourceArea).attr("style", "");
         $(this.answerArea).removeClass();
         $(this.answerArea).attr("style", "");
+        // Remove existing drop zones
+        if (this.dropZones) {
+            for (let i = 0; i < this.dropZones.length; i++) {
+                $(this.dropZones[i].element).detach();
+            }
+            this.dropZones = [];
+        }
         this.noindent = this.options.noindent;
         // Reinitialize
         if (this.hasSolved) {
@@ -2963,7 +3523,7 @@ export default class Parsons extends RunestoneBase {
             );
             localStorage.setItem(this.adaptiveId + "Solved", false);
         }
-        this.initializeAreas(this.blocksFromSource(), [], {});
+        this.initializeAreas(this.blocksFromSource(), this.fixedBlocks(), {});
         this.initializeInteractivity();
         document.body.scrollTop = scrollTop;
         if (this.runnableDiv) {

@@ -188,6 +188,22 @@
 .parsons .block.disabled {
     opacity: 0.3;
 }
+.parsons .block.fixed-block {
+    cursor: default;
+    border-style: dashed;
+    opacity: 0.85;
+}
+.parsons .drop-zone {
+    position: absolute;
+    border-radius: 5px;
+    background-color: rgba(255, 165, 0, 0.25);
+    border: none !important;
+    border-style: none !important;
+    box-sizing: border-box;
+    z-index: 0;
+    pointer-events: none;
+    outline: none !important;
+}
 .parsons .block.down {
     border: 2px solid black;
     padding: 4px 9px;
@@ -353,4 +369,76 @@
 
 #timed_Test .pagination {
     margin: 5px 0;
+}
+
+/* =============================================
+   Grouped Blocks Styling (OR indicator overlay)
+   ============================================= */
+
+/* Allow overflow so the indicator can extend outside the source area */
+.parsons .sortable-code {
+    overflow: visible !important;
+}
+
+.parsons .source {
+    overflow: visible !important;
+}
+
+.grouped-blocks-overlay {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.grouped-blocks-overlay .or-indicator {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    height: 100%;
+}
+
+.grouped-blocks-overlay .or-text {
+    color: #7e7ee7;
+    font-style: italic;
+    font-size: 14px;
+    font-weight: 600;
+    margin-right: 2px;
+}
+
+.grouped-blocks-overlay .curly-brace {
+    width: 14px;
+    height: 100%;
+    min-height: 40px;
+    position: relative;
+}
+
+/* Draw curly brace using CSS */
+.grouped-blocks-overlay .curly-brace::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 3px;
+    width: 10px;
+    height: 50%;
+    border: 3px solid #7e7ee7;
+    border-right: none;
+    border-top-left-radius: 12px;
+    border-bottom: none;
+    box-sizing: border-box;
+}
+
+.grouped-blocks-overlay .curly-brace::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 3px;
+    width: 10px;
+    height: 50%;
+    border: 3px solid #7e7ee7;
+    border-right: none;
+    border-bottom-left-radius: 12px;
+    border-top: none;
+    box-sizing: border-box;
 }
