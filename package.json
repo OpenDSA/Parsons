@@ -1,15 +1,8 @@
 {
-  "name": "parsons-prakhar",
-  "version": "1.0.4",
-  "description": "This is a server side rendered implementation of OpenDSA/Parsons. This implementation consumes the [Parsons Problem Input Format (PIF)](https://docs.google.com/document/d/1ZzEgS4_2SyS88fhWVp0041KmfWFnXBKgMWmPEDI7chw/edit?usp=sharing) an extension of [PEML](https://cssplice.org/peml/).",
-  "main": "index.js",
-  "files": [
-    "dist",
-    "server/helpers/parsePIF.js",
-    "server/helpers/logger.js",
-    "index.js",
-    "README.md"
-  ],
+  "name": "parsons",
+  "version": "1.0.0",
+  "description": "",
+  "main": "webpack.config.js",
   "scripts": {
     "build": "webpack",
     "start": "node server/index.js",
@@ -24,7 +17,6 @@
     "css-loader": "7.1.2",
     "dotenv": "17.2.1",
     "express": "5.1.0",
-    "form-data": "^4.0.5",
     "jquery": "3.7.1",
     "jsdom": "26.0.0",
     "less": "4.3.0",
@@ -40,13 +32,5 @@
     "mini-css-extract-plugin": "2.9.4",
     "webpack": "5.99.5",
     "webpack-cli": "6.0.1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/OpenDSA/Parsons.git"
-  },
-  "bugs": {
-    "url": "https://github.com/OpenDSA/Parsons/issues"
-  },
-  "homepage": "https://github.com/OpenDSA/Parsons#readme"
+  }
 }

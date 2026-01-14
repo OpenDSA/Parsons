@@ -661,6 +661,4 @@ class AutoQueue extends Queue {
     }
 }
 
-if (typeof globalThis !== 'undefined') {
-    globalThis.RunestoneBase = RunestoneBase;
-}
+window.RunestoneBase = RunestoneBase;

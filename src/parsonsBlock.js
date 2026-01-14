@@ -19,7 +19,6 @@ export default class ParsonsBlock {
         this.lines = lines;
         this.indent = 0;
         this.labels = [];
-        this.fixed = lines && lines.length > 0 ? Boolean(lines[0].fixed) : false;
         // Create view, adding view of lines and updating indent
         var view = document.createElement("div");
         view.id = problem.counterId + "-block-" + problem.blockIndex;
@@ -175,10 +174,6 @@ export default class ParsonsBlock {
     // Initialize Interactivity
     initializeInteractivity() {
         if ($(this.view).hasClass("disabled")) {
-            return this;
-        }
-        // Skip interactivity for fixed blocks - they should not be movable
-        if (this.fixed) {
             return this;
         }
         $(this.view).attr("tabindex", "-1");
@@ -638,10 +633,6 @@ export default class ParsonsBlock {
                     if (i == 0) {
                         return this;
                     }
-                    // Don't move up past first fixed block
-                    if (blocks[i - 1].isFirstFixed) {
-                        return this;
-                    }
                     this.problem.textMoving = true;
                     this.problem.answerArea.insertBefore(
                         this.view,
@@ -665,10 +656,6 @@ export default class ParsonsBlock {
                 var item = answerBlocks[i];
                 var itemOffset = item.verticalOffset();
                 if (itemOffset >= offset) {
-                    // Don't insert before the first fixed block
-                    if (item.isFirstFixed) {
-                        continue;
-                    }
                     this.problem.textMoving = true;
                     this.problem.answerArea.insertBefore(this.view, item.view);
                     $(this.view).focus();
@@ -677,13 +664,8 @@ export default class ParsonsBlock {
                     return this;
                 }
             }
-            // Append at end, but before last fixed block if present
             this.problem.textMoving = true;
-            if (this.problem.lastFixedBlock && answerBlocks.length > 0 && answerBlocks[answerBlocks.length - 1].isLastFixed) {
-                this.problem.answerArea.insertBefore(this.view, this.problem.lastFixedBlock.view);
-            } else {
-                this.problem.answerArea.appendChild(this.view);
-            }
+            this.problem.answerArea.appendChild(this.view);
             $(this.view).focus();
             this.problem.state = undefined;
             this.problem.updateView();
@@ -733,16 +715,7 @@ export default class ParsonsBlock {
                 if (blocks[i].view.id == this.view.id) {
                     if (i == blocks.length - 1) {
                         return this;
-                    }
-                    // Don't move down past last fixed block
-                    if (blocks[i + 1].isLastFixed) {
-                        return this;
-                    }
-                    if (i == blocks.length - 2) {
-                        // Check if last block is last fixed block
-                        if (blocks[blocks.length - 1].isLastFixed) {
-                            return this; // Can't move past last fixed block
-                        }
+                    } else if (i == blocks.length - 2) {
                         this.problem.textMoving = true;
                         this.problem.answerArea.appendChild(this.view);
                     } else {

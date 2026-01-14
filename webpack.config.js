@@ -8,10 +8,9 @@ module.exports = {
     filename: 'parsons.js',
     library: {
       name: 'Parsons',
-      type: 'umd',
+      type: 'window',
       export: 'default'
-    },
-    globalObject: 'globalThis'
+    }
   },
   mode: 'development', // or 'production'
   module: {

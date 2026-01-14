@@ -58,14 +58,3 @@ NB: Remember to bundle when changes are made so they are served to the browser.
 docker compose up
 ```
 
-## Using as an npm package
-
-```js
-const { parsePIF, loadParsonsBundle } = require('parsons');
-
-// Server helpers work in plain Node
-await parsePIF('github', 'example.peml');
-
-// Browser-only bundle: requires window/document (e.g., in the browser or after setting up JSDOM)
-const Parsons = loadParsonsBundle();
-```
