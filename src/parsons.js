@@ -315,8 +315,9 @@ export default class Parsons extends RunestoneBase {
             const displayMath = Boolean(pifBlock.displaymath);
             
             //make togglesArray work with backend later
-            var togglesArray = [];
-            var line = new ParsonsLine(this, blockText, displayMath, togglesArray);
+            var togglesArray = pifBlock.toggle_options;
+            var textArray = pifBlock.text_options;
+            var line = new ParsonsLine(this, blockText, displayMath, togglesArray, textArray);
             
             // Set properties - handle various indent formats
             const indentValue = pifBlock.indent;

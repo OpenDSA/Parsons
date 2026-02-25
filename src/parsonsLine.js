@@ -18,14 +18,16 @@
 // Initialize from codestring
 
 import ParsonsToggle from './parsonsToggle.js';
+import ParsonsTextInput from './parsonsTextInput.js';
 
 export default class ParsonsLine {
-    constructor(problem, codestring, displaymath, togglesArray) {
+    constructor(problem, codestring, displaymath, togglesArray, textArray) {
         this.problem = problem;
         this.index = problem.lines.length;
         var trimmed = codestring.replace(/\s*$/, "");
         this.text = trimmed.replace(/^\s*/, "");
         this.toggles = [];
+        this.textInputs= [];
 
         //28-31: Not from Runestone
         // this.text = this.text.replace(/\*\*(.*?)\*\*/g, '\(\textbf{$1}\)');
@@ -50,6 +52,7 @@ export default class ParsonsLine {
         }
         view.id = problem.counterId + "-line-" + this.index;
 
+        var offset = 0;
         //creating toggles within text
         if(togglesArray.length > 0){
             for(let i = 0; i < togglesArray.length; i++){
@@ -58,10 +61,28 @@ export default class ParsonsLine {
                 this.toggles.push(toggle);
 
                 //inserts toggle into the inner html
-                const index = togglesArray[i].pos;
-                const endString = this.text.slice(index);
-                const startString = this.text.slice(0, index);
-                this.text = startString + " " + toggle.htmlContent + " " + endString;
+                const startIndex = togglesArray[i].start_index + offset;
+                const endIndex = togglesArray[i].end_index + offset;
+
+                offset += toggle.htmlContent.length - (endIndex - startIndex);
+
+                this.text = this.text.slice(0, startIndex) + toggle.htmlContent + this.text.slice(endIndex);
+            }
+        }
+
+        if(textArray.length > 0){
+            for(let i = 0; i < textArray.length; i++){
+                //creates a new toggleobject
+                const textInput = new ParsonsTextInput();
+                this.textInputs.push(textInput);
+
+                //inserts toggle into the inner html
+                const startIndex = textArray[i].start_index + offset;
+                const endIndex = textArray[i].end_index + offset;
+
+                offset += textInput.htmlContent.length - (endIndex - startIndex);
+
+                this.text = this.text.slice(0, startIndex) + textInput.htmlContent + this.text.slice(endIndex);
             }
         }
 
