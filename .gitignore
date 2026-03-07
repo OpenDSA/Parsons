@@ -1,6 +1,7 @@
 node_modules
 .idea/
 dist/
+.vscode
 
 #sample input files for testing. Not essential to ignore
 #test-inputs/
