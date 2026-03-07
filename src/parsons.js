@@ -479,7 +479,7 @@ export default class Parsons extends RunestoneBase {
             if (that.options.grader === "exec" || that.hasReusable) {
                 //TODO: Implement executable grading and uncomment the line below
                 var extractedCode = that.extractCode(); 
-                console.log(`EXTRACTED CODE = ${extractedCode}`)
+                console.log("EXTRACTED CODE =\n" + JSON.stringify(extractedCode, null, 2));
             
                 const errorMessage = "Executable grading not yet implemented.";
                 $('body').append(`
