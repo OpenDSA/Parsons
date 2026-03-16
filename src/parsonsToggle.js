@@ -1,11 +1,18 @@
 export default class ParsonsToggle {
     static toggleCount = 0;       
-    constructor(values){
+    constructor({start_index, end_index, values}){
         ParsonsToggle.toggleCount++;
-        this.values = values;
+
         this.id = "toggle" + ParsonsToggle.toggleCount;
+        this.values = values;
         this.currentIndex = 0;
-        this.htmlContent = `<button id="${this.id}">${this.values[0]}</button>`;
+
+        this.start_index = start_index;
+        this.end_index = end_index;
+
+        this.button = document.createElement('button');
+        this.button.id = this.id;
+        this.button.textContent = this.values[0];
     }
 
     nextValue(){

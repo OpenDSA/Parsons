@@ -276,6 +276,7 @@ export default class Parsons extends RunestoneBase {
         
         // Get blocks from PIF data - handle both direct and nested structure
         const pifBlocks = this.pifData?.blocks || this.pifData?.value?.blocks || [];
+        console.log(pifBlocks);
 
         if (!Array.isArray(pifBlocks) || pifBlocks.length === 0) {
             console.warn('No valid blocks found in PIF data');
@@ -690,6 +691,9 @@ export default class Parsons extends RunestoneBase {
                 for (let i = 0; i < line.indent; i++) { 
                     code += "    "; 
                 } 
+
+                //replace toggle button html content with inner content
+                line.text = line.text.replace(/<button\b[^>]*>(.*?)<\/button>/g, '$1');
                 code += line.text + "\n"; 
             } 
         } 
