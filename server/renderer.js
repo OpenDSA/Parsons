@@ -126,8 +126,7 @@ const parsonsPageTemplate = `
 <!DOCTYPE html>
 <html>
 <head>
-<link rel="stylesheet" type="text/css" href="/css/parsons.css"/>
-  <link rel="stylesheet" type="text/css" href="/css/index.css"/>
+   <link rel="stylesheet" type="text/css" href="/parsons/dist/main.css"/>
    <script type="text/javascript">
     if (typeof eBookConfig === "undefined") {
         eBookConfig = {};
