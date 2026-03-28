@@ -1,8 +1,9 @@
 export default class ParsonsToggle {
     static toggleCount = 0;       
-    constructor({start_index, end_index, values}){
+    constructor({start_index, end_index, values}, line){
         ParsonsToggle.toggleCount++;
 
+        this.line = line;
         this.id = "toggle" + ParsonsToggle.toggleCount;
         this.values = values;
         this.currentIndex = 0;
@@ -24,6 +25,7 @@ export default class ParsonsToggle {
         const toggleButton = document.getElementById(this.id);
         toggleButton.addEventListener('click', () => {
             toggleButton.textContent = this.nextValue();
+            this.line.updateText();
         });
     }
 }

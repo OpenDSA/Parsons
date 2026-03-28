@@ -276,7 +276,6 @@ export default class Parsons extends RunestoneBase {
         
         // Get blocks from PIF data - handle both direct and nested structure
         const pifBlocks = this.pifData?.blocks || this.pifData?.value?.blocks || [];
-        console.log(pifBlocks);
 
         if (!Array.isArray(pifBlocks) || pifBlocks.length === 0) {
             console.warn('No valid blocks found in PIF data');
@@ -318,7 +317,7 @@ export default class Parsons extends RunestoneBase {
             //make togglesArray work with backend later
             var togglesArray = pifBlock.toggle_options;
             var textArray = pifBlock.text_options;
-            var line = new ParsonsLine(this, blockText, displayMath, togglesArray, textArray);
+            var line = new ParsonsLine(this, blockText, displayMath, togglesArray, textArray, pifBlock);
             
             // Set properties - handle various indent formats
             const indentValue = pifBlock.indent;
@@ -1017,6 +1016,9 @@ export default class Parsons extends RunestoneBase {
         for (var i = 0; i < this.lines.length; i++) {
             for(const toggle of this.lines[i].toggles){
                 toggle.attachListeners();
+            }
+            for(const textInput of this.lines[i].textInputs){
+                textInput.attachListeners();
             }
         }
         this.initializeTabIndex();

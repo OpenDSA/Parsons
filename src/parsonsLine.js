@@ -21,7 +21,7 @@ import ParsonsToggle from './parsonsToggle.js';
 import ParsonsTextInput from './parsonsTextInput.js';
 
 export default class ParsonsLine {
-    constructor(problem, codestring, displaymath, togglesArray = [], textArray = []) {
+    constructor(problem, codestring, displaymath, togglesArray = [], textArray = [], block) {
         this.problem = problem;
         this.index = problem.lines.length;
         var trimmed = codestring.replace(/\s*$/, "");
@@ -66,17 +66,19 @@ export default class ParsonsLine {
         let lastIndex = 0;
 
         togglesAndTextInput.forEach(t => {
+
+            //add text between two toggles/delimiters
             if (t.start_index > lastIndex) {
                 const leadingText = this.text.slice(lastIndex, t.start_index);
                 this.nodes.push(document.createTextNode(leadingText));
             }
 
             if (t.type === 'toggle') {
-                const toggle = new ParsonsToggle(t);
+                const toggle = new ParsonsToggle(t, this);
                 this.toggles.push(toggle);
                 this.nodes.push(toggle.button);
             } else {
-                const textInput = new ParsonsTextInput(t);
+                const textInput = new ParsonsTextInput(t, this);
                 this.textInputs.push(textInput);
                 this.nodes.push(textInput.text_input);
             }
@@ -95,7 +97,27 @@ export default class ParsonsLine {
 
         this.view = view;
         problem.lines.push(this);
+
+        //update the text after constructing line by removing delimiters and adding default text
+        this.textInputs.forEach(input => {
+            this.updateInputText(input.inner_content, input.start_index, input.end_index);
+
+            //remove delimiters
+            input.end_index = input.end_index - 4;
+        });
     }
+
+    //updates text after changing toggle input
+    updateText() {
+        this.text = this.view.textContent;
+    }
+
+    //updates text after changing text input
+    updateInputText(replacement, start_index, old_end_index){
+        this.text = this.text.slice(0, start_index) + replacement + this.text.slice(old_end_index);
+        console.log(this.text);
+    }
+
     // Initialize what width the line would naturally have (without indent)
     initializeWidth() {
         // this.width does not appear to be used anywhere later
