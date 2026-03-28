@@ -14,6 +14,7 @@ export default class ParsonsToggle {
         this.button = document.createElement('button');
         this.button.id = this.id;
         this.button.textContent = this.values[0];
+
     }
 
     nextValue(){
@@ -25,7 +26,10 @@ export default class ParsonsToggle {
         const toggleButton = document.getElementById(this.id);
         toggleButton.addEventListener('click', () => {
             toggleButton.textContent = this.nextValue();
-            this.line.updateText();
+
+            const oldEndIndex = this.end_index
+            this.end_index = this.start_index + toggleButton.textContent.length;
+            this.line.updateText(toggleButton.textContent, this.start_index, oldEndIndex);
         });
     }
 }

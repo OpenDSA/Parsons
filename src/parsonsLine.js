@@ -98,24 +98,66 @@ export default class ParsonsLine {
         this.view = view;
         problem.lines.push(this);
 
-        //update the text after constructing line by removing delimiters and adding default text
-        this.textInputs.forEach(input => {
-            this.updateInputText(input.inner_content, input.start_index, input.end_index);
+        //track how the string grows or shortens as text is changed
+        let cumulativeOffset = 0;
 
-            //remove delimiters
-            input.end_index = input.end_index - 4;
+        //update text to remove delimiters and reflect actual state
+        [...this.toggles, ...this.textInputs]
+            .sort((a, b) => a.start_index - b.start_index)
+            .forEach(t => {
+            let text;
+            let start;
+            let end;
+
+            if (t instanceof ParsonsToggle) {
+                text = t.button.textContent;
+                start = t.start_index;
+                end = t.end_index;
+            } else {
+                text = t.inner_content;
+                start = t.start_index;
+                end = t.end_index;
+            }
+
+            start += cumulativeOffset;
+            end += cumulativeOffset;
+
+            this.text = this.text.slice(0, start) + text + this.text.slice(end);
+            t.start_index = start;
+            t.end_index = start + text.length;
+
+            const lengthDifference = text.length - (end - start);
+            cumulativeOffset += lengthDifference;
         });
     }
 
-    //updates text after changing toggle input
-    updateText() {
-        this.text = this.view.textContent;
-    }
-
-    //updates text after changing text input
-    updateInputText(replacement, start_index, old_end_index){
+    //updates text after changing text input or toggle
+    updateText(replacement, start_index, old_end_index){
+        const lengthDifference =  replacement.length - (old_end_index - start_index);
+        this.shiftSiblingIndices(start_index, lengthDifference);
         this.text = this.text.slice(0, start_index) + replacement + this.text.slice(old_end_index);
         console.log(this.text);
+    }
+
+    //shifts end and start index when toggles and text inputs are modified
+    shiftSiblingIndices(changedStartIndex, shiftAmount) {
+        if (shiftAmount === 0) return;
+
+        // Shift toggles that come after the one edited
+        this.toggles.forEach(toggle => {
+            if (toggle.start_index > changedStartIndex) {
+                toggle.start_index += shiftAmount;
+                toggle.end_index += shiftAmount;
+            }
+        });
+
+        // Shift text inputs after the one edited
+        this.textInputs.forEach(input => {
+            if (input.start_index > changedStartIndex) {
+                input.start_index += shiftAmount;
+                input.end_index += shiftAmount;
+            }
+        });
     }
 
     // Initialize what width the line would naturally have (without indent)

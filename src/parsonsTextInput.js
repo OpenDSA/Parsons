@@ -26,7 +26,7 @@ export default class ParsonsTextInput {
 
             this.end_index = oldEndIndex + (newText.length - oldInnerContent.length);
             this.inner_content = newText;
-            this.line.updateInputText(event.target.value, this.start_index, oldEndIndex);
+            this.line.updateText(event.target.value, this.start_index, oldEndIndex);
         });
     }
 }
