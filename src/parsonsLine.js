@@ -21,7 +21,7 @@ import ParsonsToggle from './parsonsToggle.js';
 import ParsonsTextInput from './parsonsTextInput.js';
 
 export default class ParsonsLine {
-    constructor(problem, codestring, displaymath, togglesArray = [], textArray = [], block) {
+    constructor(problem, codestring, displaymath, togglesArray = [], textArray = []) {
         this.problem = problem;
         this.index = problem.lines.length;
         var trimmed = codestring.replace(/\s*$/, "");
