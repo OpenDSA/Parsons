@@ -1,11 +1,6 @@
 # Renderable JSON Format
 This covers the JSON format this library expects in order to properly render Parsons Problems
 
-## Status
-- Draft | Proposed | Final (pick one)
-- Version: 0.1.0
-- Last updated: YYYY-MM-DD
-
 ## Table of contents
 - Overview
 - Format / Schema
@@ -88,21 +83,100 @@ key : `"blocks"`  <br>
 type: []blocks (list of blocks)
 
 Structure of a block:
+
+JSON skeleton (fill values as needed):
 ```json
 {
-    "text": "",
-    "type": "",
-    "tag": "fixed",
-    "depends": "",
-    "indent": "",
-    "displaymath": true,
-    "feedback": ""
+    "text": "<string - block content to be displayed>",
+    "code": "<string - optional raw code>",
+    "type": "<string - semantic type or empty>",
+    "tag": "<string - identifier / group tag>",
+    "depends": "<string|array - tag(s) this block depends on>",
+    "indent": "<number|boolean|string - indent level or tagging>",
+    "displaymath": "<boolean>",
+    "feedback": "<string - feedback for this block>",
+    "toggle_options": [
+        {
+            "start_index": "<number>",
+            "end_index": "<number>",
+            "values": [ "<string>", "..."]
+        }
+    ]
 }
 ```
 
+Field reference (fill descriptions/examples):
+
+- text  
+    - type: string  
+    - required: yes  
+    - example: "for i in range(n):"  
+    - notes: Rendered content; may contain Git Flavored Markdown/LaTeX.
+
+- code  
+    - type: string  
+    - required: no  
+    - example: "for i in range(n):\n  print(i)"  
+    - notes: Raw code for execution if the display text is not executable. eg Pseudocode or code in a different language.
+
+- type  
+    - type: string  
+    - required: no  
+    - options: "distractor", "fixed", "toggle", "textbox"  
+    - notes: Defines the type of block.
+
+- tag  
+    - type: string
+    - required: no
+    - example: any unique string
+    - notes: Identifier used by depends to describe correct orderings
+
+- depends  
+    - type: string or array[string]  
+    - required: yes, for order-grading only
+    - example: "randomg1b1" or ["a","b"]  
+    - notes: Ordering/dependency constraints (tag names).
+
+- indent  
+    - type: number 
+    - required: conditional (when `"indent.mode" = "prescribed"`)  
+    - example: 0, 1, 2
+    - notes: If top-level indent.mode == "prescribed" use a number indicating level.Should be ommited otherwise.
+
+- displaymath  
+    - type: boolean  
+    - required: no
+    - example: true  
+    - notes: Whether to render as display math / Markdown.
+
+TODO: feedack and toggle_options should be lower level options within `type`
+
+- feedback  
+    - type: string  
+    - required: no  
+    - example: "This line should be before the loop."  
+    - notes: Per-block feedback shown after grading/checking.
+
+- toggle_options  
+    - type: array of objects  
+    - required: no  
+    - example: see skeleton  
+    - notes: Defines in-line selectable options; each object has:
+        - start_index (number): start position in text
+        - end_index (number): end position in text
+        - values (array[string]): allowed substitutions
+
+
+
+Add any other custom keys your renderer uses with the same mini-spec format above.
+ * No code selection was provided.
+ * Please paste the code you want documented and indicate the desired
+ * documentation style (e.g., Javadoc, XML doc, Python docstring).
+ */
+
 
 ## Examples
-Full example:
+Full Example 1:
 ```json
 {
     "question_text": "<p>Put the blocks <strong>in</strong> the proper order.</p>\n",
@@ -207,6 +281,8 @@ Full example:
     ]
 }
 ```
+<br>
+
 Toggles Example
 ```json
 {
@@ -286,15 +362,10 @@ Toggles Example
 ```
 
 ## Validation
-- Link to JSON Schema or provide schema snippet.
-- Validation tool/command (e.g., ajv, jsonschema).
 
-## Versioning & Changelog
-- How version bumps are handled (major/minor/patch).
-- Keep changelog entries per version.
 
-## Authors & License
-- Author: Your Name <email>
-- License: SPDX identifier (e.g., MIT)
 
-<!-- Add any other notes, references, or appendices below -->
+## Local Testing
+Run the server normally.
+To access files in the ./tests/postitive directory, use the endpoint route: /parsons/test/`<filename>`
+For example: For an instance running on port 3000, http://localhost:3000/parsons/test/test 
