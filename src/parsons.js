@@ -276,7 +276,6 @@ export default class Parsons extends RunestoneBase {
         
         // Get blocks from PIF data - handle both direct and nested structure
         const pifBlocks = this.pifData?.blocks || this.pifData?.value?.blocks || [];
-        console.log(pifBlocks);
 
         if (!Array.isArray(pifBlocks) || pifBlocks.length === 0) {
             console.warn('No valid blocks found in PIF data');
@@ -315,9 +314,8 @@ export default class Parsons extends RunestoneBase {
             
             const displayMath = Boolean(pifBlock.displaymath);
             
-            //make togglesArray work with backend later
-            var togglesArray = pifBlock.toggle_options;
-            var textArray = pifBlock.text_options;
+            const togglesArray = pifBlock.toggle_options;
+            const textArray = pifBlock.text_options;
             var line = new ParsonsLine(this, blockText, displayMath, togglesArray, textArray);
             
             // Set properties - handle various indent formats
@@ -333,6 +331,7 @@ export default class Parsons extends RunestoneBase {
             } else {
                 line.indent = 0;
             }
+
             line.distractor = isDistractor;
             line.distractHelpText = 
             line.paired = Boolean(pifBlock.paired); // Respect paired flag if present
@@ -633,10 +632,7 @@ export default class Parsons extends RunestoneBase {
                 // discard blank rows
                 if (!/^\s*$/.test(code)) {
                     var line = new ParsonsLine(
-                        this,
-                        code,
-                        options["displaymath"],
-                        togglesArray
+                        this, blockText, displayMath, togglesArray, textArray
                     );
                     lines.push(line);
                     if (options["reusable"]) {
@@ -688,6 +684,7 @@ export default class Parsons extends RunestoneBase {
         let code = ""; 
         for (const block of this.answerBlocks()) { 
             for (const line of block.lines) { 
+                console.log(line);
                 for (let i = 0; i < line.indent; i++) { 
                     code += "    "; 
                 } 
@@ -798,6 +795,10 @@ export default class Parsons extends RunestoneBase {
                 indent = this.solutionIndent();
             } else {
                 indent = Math.max(0, this.solutionIndent());
+            }
+
+            if(this.options.grader === "exec") {
+                indent = this.blocks.length - 1;
             }
         }
         this.indent = indent;
@@ -1017,6 +1018,9 @@ export default class Parsons extends RunestoneBase {
         for (var i = 0; i < this.lines.length; i++) {
             for(const toggle of this.lines[i].toggles){
                 toggle.attachListeners();
+            }
+            for(const textInput of this.lines[i].textInputs){
+                textInput.attachListeners();
             }
         }
         this.initializeTabIndex();
@@ -3170,6 +3174,12 @@ export default class Parsons extends RunestoneBase {
                     this.answerArea.getBoundingClientRect().top -
                     window.pageYOffset;
                 this.moving.indent = movingIndent;
+
+                //update line indent property after indenting
+                for(const line of this.moving.lines){
+                    line.indent = this.moving.indent;
+                }
+
                 var inDropZone = false;
                 var currentDropZoneIndex = -1;
                 for (i = 0; i < blocks.length; i++) {
@@ -3372,6 +3382,7 @@ export default class Parsons extends RunestoneBase {
         }
         state = newState;
         this.state = state;
+        console.log(this.state);
     }
 
     addBlockLabels(blocks) {
