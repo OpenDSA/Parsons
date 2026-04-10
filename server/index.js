@@ -158,6 +158,7 @@ app.get('/parsons/api/files', async (req, res) => {
 
 
 //Parse PIF file and inject into the page to render the exercise
+// DEPRECATED: Use /parsons/pifjson instead
 app.get('/parsons/pif/:source/:filename', async (req, res) => {
     const filename = req.params.filename;
     const source = req.params.source;
