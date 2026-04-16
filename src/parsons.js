@@ -684,7 +684,6 @@ export default class Parsons extends RunestoneBase {
         let code = ""; 
         for (const block of this.answerBlocks()) { 
             for (const line of block.lines) { 
-                console.log(line);
                 for (let i = 0; i < line.indent; i++) { 
                     code += "    "; 
                 } 
@@ -3382,7 +3381,6 @@ export default class Parsons extends RunestoneBase {
         }
         state = newState;
         this.state = state;
-        console.log(this.state);
     }
 
     addBlockLabels(blocks) {
