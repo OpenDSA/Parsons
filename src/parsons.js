@@ -185,8 +185,8 @@ export default class Parsons extends RunestoneBase {
             "c++": "prettyprint lang-cpp",
             cpp: "prettyprint lang-cpp",
             ruby: "prettyprint lang-rb",
-            math: "", // No prettify for math
-            natural: "" // No prettify for natural language
+            math: "", 
+            natural: "" 
         }[options.language] || "";
     
     options.prettifyLanguage = prettifyLanguage;
@@ -1916,12 +1916,12 @@ export default class Parsons extends RunestoneBase {
         } // end outer if not solved
 
         // if now or previous was correct, display runnable
-        if (this.hasSolved && this.options.runnable) {
-            if (!this.runnableDiv)
-                this.generateRunableVersion();
-            else //reveal "reset" runnable
-                this.runnableDiv.style.display = null;
-        }
+        // if (this.hasSolved && this.options.runnable) {
+            // if (!this.runnableDiv)
+                // this.generateRunableVersion();
+            // else //reveal "reset" runnable
+                // this.runnableDiv.style.display = null;
+        // }
     }
 
     // Conver the parsons-runnable into an activecode and display it

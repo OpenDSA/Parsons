@@ -158,6 +158,7 @@ app.get('/parsons/api/files', async (req, res) => {
 
 
 //Parse PIF file and inject into the page to render the exercise
+// DEPRECATED: Use /parsons/pifjson instead
 app.get('/parsons/pif/:source/:filename', async (req, res) => {
     const filename = req.params.filename;
     const source = req.params.source;
@@ -312,6 +313,54 @@ app.get('/parsons/pifjson/:source/:filename', async (req, res) => {
             `);
         }
     }
+
+    res.send(dom.serialize());
+});
+
+//Renders a pre-parsed JSON from tests/positive/ directly,
+// bypassing PEML parsing. Used for frontend tests.
+app.get('/parsons/test/:name', (req, res) => {
+    const fixtureDir = path.join(__dirname, '../tests/positive');
+    const fixturePath = path.join(fixtureDir, `${req.params.name}.json`);
+
+    if (!fs.existsSync(fixturePath)) {
+        return res.status(404).send(`Fixture "${req.params.name}.json" not found in tests/positive/`);
+    }
+
+    let parsedJson;
+    try {
+        parsedJson = JSON.parse(fs.readFileSync(fixturePath, 'utf8'));
+    } catch (e) {
+        return res.status(400).send(`Invalid JSON in fixture "${req.params.name}.json": ${e.message}`);
+    }
+
+    const dom = new JSDOM(parsonsPageTemplate);
+    const window = dom.window;
+    const $ = jqueryFactory(window);
+
+    $('body').append(`
+        <div id="parsons-container" class="parsons" data-component="parsons">
+            <div class="parsons_question parsons-text">
+                <p>${parsedJson.value.question_text || 'Please arrange the code blocks correctly.'}</p>
+            </div>
+        </div>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                try {
+                    new Parsons({
+                        orig: document.getElementById('parsons-container'),
+                        pifJson: ${JSON.stringify(parsedJson)},
+                        divid: 'parsons-container',
+                        useRunestoneServices: false
+                    });
+                } catch (error) {
+                    console.error('Error initializing Parsons:', error);
+                    document.getElementById('parsons-container').innerHTML =
+                        '<div style="color: red; padding: 20px;">Error loading Parsons exercise: ' + error.message + '</div>';
+                }
+            });
+        </script>
+    `);
 
     res.send(dom.serialize());
 });
