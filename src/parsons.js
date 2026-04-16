@@ -185,8 +185,8 @@ export default class Parsons extends RunestoneBase {
             "c++": "prettyprint lang-cpp",
             cpp: "prettyprint lang-cpp",
             ruby: "prettyprint lang-rb",
-            math: "", 
-            natural: "" 
+            math: "", // No prettify for math
+            natural: "" // No prettify for natural language
         }[options.language] || "";
     
     options.prettifyLanguage = prettifyLanguage;
@@ -790,15 +790,16 @@ export default class Parsons extends RunestoneBase {
         // Determine how much indent should be possible in the answer area
         var indent = 0;
         if (!this.noindent) {
-            if (this.options.language == "natural") {
-                indent = this.solutionIndent();
-            } else {
-                indent = Math.max(0, this.solutionIndent());
-            }
-
-            if(this.options.grader === "exec") {
-                indent = this.blocks.length - 1;
-            }
+            indent = this.solutionIndent();
+            // if (this.options.language == "natural") {
+            //     indent = this.solutionIndent();
+            // } else {
+            //     indent = Math.max(0, this.solutionIndent());
+            // }
+            //
+            // if(this.options.grader === "exec") {
+            //     indent = this.blocks.length - 1;
+            // }
         }
         this.indent = indent;
         // For rendering, place in an onscreen position
@@ -1843,6 +1844,7 @@ export default class Parsons extends RunestoneBase {
                 answerLines.push(block.lines[j]);
             }
         }
+        console.log(answerLines);
         return answerLines;
     }
 
@@ -1857,12 +1859,18 @@ export default class Parsons extends RunestoneBase {
 
     // Return the maximum indent for the solution
     solutionIndent() {
-        var indent = 0;
-        for (var i = 0; i < this.blocks.length; i++) {
-            var block = this.blocks[i];
-            indent = Math.max(indent, block.solutionIndent());
+        const maxIndents = this.pifData.options.indent.max_indents;
+        const active = this.pifData.options.indent.active;
+
+        if(!active){
+            return 0;
         }
-        return indent;
+
+        if(maxIndents){
+            return maxIndents
+        } else {
+            return 3;
+        }
     }
 
     /* =====================================================================
@@ -1916,12 +1924,12 @@ export default class Parsons extends RunestoneBase {
         } // end outer if not solved
 
         // if now or previous was correct, display runnable
-        // if (this.hasSolved && this.options.runnable) {
-            // if (!this.runnableDiv)
-                // this.generateRunableVersion();
-            // else //reveal "reset" runnable
-                // this.runnableDiv.style.display = null;
-        // }
+        if (this.hasSolved && this.options.runnable) {
+            if (!this.runnableDiv)
+                this.generateRunableVersion();
+            else //reveal "reset" runnable
+                this.runnableDiv.style.display = null;
+        }
     }
 
     // Conver the parsons-runnable into an activecode and display it
@@ -2111,7 +2119,7 @@ export default class Parsons extends RunestoneBase {
 
     // Return a boolean of whether the user must deal with indentation
     usesIndentation() {
-        if (this.noindent || this.solutionIndent() == 0) {
+        if (this.noindent || this.solutionIndent() == 0 || !(this.pifData.options.indent.active)) {
             // was $(this.answerArea).hasClass("answer") - bje changed
             return false;
         } else {
