@@ -9,13 +9,22 @@
       "indent": {
         "active": true,
         "mode": "free",
-        "max_indents": 1
+        "max_indents": 3
       },
       "adaptive": true,
       "numbered": false,
       "language": "java"
     },
     "blocks": [
+      {
+        "text": "Fixed Start\n  This block goes at the beginning\n  of the exercise.\n",
+        "type": "",
+        "tag": "fixed",
+        "depends": "",
+        "indent": true,
+        "displaymath": false,
+        "feedback": ""
+      },
       {
         "text": "Random Group 1 Block 1\n  This block is the first block after the \"Fixed Start\" block.\n",
         "type": "",
@@ -80,32 +89,11 @@
         "feedback": ""
       },
       {
-        "text": "Fixed Start\n  This block goes at the beginning\n  of the exercise.",
+        "text": "Fixed End\n      This block appears at the end.\n",
         "type": "",
-        "toggle_options": [
-
-        ],
-        "text_options": [
-
-        ],
         "tag": "fixed",
         "depends": "",
-        "indent": "",
-        "displaymath": false,
-        "feedback": ""
-      },
-      {
-        "text": "Fixed End\n      This block appears at the end.",
-        "type": "",
-        "toggle_options": [
-
-        ],
-        "text_options": [
-
-        ],
-        "tag": "fixed",
-        "depends": "",
-        "indent": "",
+        "indent": true,
         "displaymath": false,
         "feedback": ""
       }
