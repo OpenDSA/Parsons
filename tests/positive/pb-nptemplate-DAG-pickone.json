@@ -26,7 +26,7 @@
         "feedback": ""
       },
       {
-        "text": "1. Show that X is in NP.",
+        "text": "<ol>\n  <li>Show that X is in NP.</li>\n</ol>",
         "type": "",
         "tag": "xinNP",
         "depends": "starter",
@@ -44,7 +44,7 @@
         "feedback": ""
       },
       {
-        "text": "2. Show that X is NP-hard.",
+        "text": "<ol>\n  <li>Show that X is NP-hard.</li>\n</ol>",
         "type": "",
         "tag": "starthard",
         "depends": "algorithm",
@@ -73,38 +73,38 @@
       {
         "text": "Describe a polynomial-time algorithm that takes an arbitrary instance $\\textbf{I}$ of A to an instance $\\textbf{I′}$ of X.",
         "type": "",
-        "tag": "t1",
+        "tag": "t1-one",
         "depends": "trans",
-        "indent": true,
+        "indent": 0,
         "displaymath": true,
-        "feedback": ""
+        "feedback": "",
+        "picklimit": 0
       },
       {
         "text": "Describe a polynomial-time algorithm that takes an arbitrary instance $\\textbf{I}$ of X to an instance $\\textbf{I′}$ of A.",
-        "type": "",
-        "tag": "d1",
+        "tag": "t1-d1",
         "depends": "-1",
-        "indent": true,
         "displaymath": true,
-        "feedback": ""
+        "feedback": null,
+        "reusable": false
       },
       {
         "text": "Describe a polynomial-time transformation from the solution for $\\textbf{I’}$ in problem X (call it $\\textbf{SLN’}$) to $\\textbf{SLN}$ such that $\\textbf{SLN}$ is the solution for $\\textbf{I}$ in problem A.",
         "type": "",
-        "tag": "t2",
+        "tag": "t2-two",
         "depends": "trans",
-        "indent": true,
+        "indent": 0,
         "displaymath": true,
-        "feedback": ""
+        "feedback": "",
+        "picklimit": 0
       },
       {
         "text": "Describe a polynomial-time transformation from the solution for $\\textbf{I’}$ in problem A (call it $\\textbf{SLN’}$) to $\\textbf{SLN}$ such that $\\textbf{SLN}$ is the solution for $\\textbf{I}$ in problem X.",
-        "type": "",
-        "tag": "d2",
+        "tag": "t2-d2",
         "depends": "-1",
-        "indent": true,
         "displaymath": true,
-        "feedback": ""
+        "feedback": null,
+        "reusable": false
       }
     ]
   },
