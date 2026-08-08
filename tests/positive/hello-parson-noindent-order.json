@@ -7,9 +7,9 @@
         "show_feedback": true
       },
       "indent": {
-        "active": true,
-        "mode": "free",
-        "max_indents": 1
+        "active": null,
+        "mode": "",
+        "max_indents": 3
       },
       "adaptive": true,
       "numbered": false,
@@ -21,7 +21,7 @@
         "type": "",
         "tag": "one",
         "depends": "",
-        "indent": true,
+        "indent": "",
         "displaymath": false,
         "feedback": ""
       },
@@ -29,8 +29,8 @@
         "text": "print('Parsons')",
         "type": "",
         "tag": "two",
-        "depends": "",
-        "indent": true,
+        "depends": "one",
+        "indent": "",
         "displaymath": false,
         "feedback": ""
       },
@@ -38,8 +38,8 @@
         "text": "print('Problems!')",
         "type": "",
         "tag": "three",
-        "depends": "",
-        "indent": true,
+        "depends": "two",
+        "indent": "",
         "displaymath": false,
         "feedback": ""
       }

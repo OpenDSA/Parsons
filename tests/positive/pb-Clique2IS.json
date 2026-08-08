@@ -16,11 +16,109 @@
       "language": "natural"
     },
     "blocks": [
-
+      {
+        "text": "Show that INDEPENDENT SET is in NP.",
+        "type": "",
+        "tag": "inNP",
+        "depends": "",
+        "indent": true,
+        "displaymath": true,
+        "feedback": ""
+      },
+      {
+        "text": "Show transformations to reduce <code>CLIQUE`IS</code> to <code>IS`CLIQUE</code>.",
+        "type": "",
+        "tag": "starthard",
+        "depends": "NPhardblock",
+        "indent": true,
+        "displaymath": true,
+        "feedback": "",
+        "toggle_options": [
+          {
+            "start_index": 31,
+            "end_index": 44,
+            "values": [
+              "CLIQUE",
+              "IS"
+            ]
+          },
+          {
+            "start_index": 48,
+            "end_index": 61,
+            "values": [
+              "IS",
+              "CLIQUE"
+            ]
+          }
+        ]
+      },
+      {
+        "text": "<table>\n  <tbody>\n    <tr>\n      <td>To reduce a [CLIQUE</td>\n      <td>IS] input instance to an [IS</td>\n      <td>CLIQUE] input instance for a given graph $G = (V , E)$, construct a complementary graph $G’ = (V’ , E’)$ such that:</td>\n    </tr>\n  </tbody>\n</table>",
+        "type": "",
+        "tag": "reduce",
+        "depends": "starthard",
+        "indent": true,
+        "displaymath": true,
+        "feedback": ""
+      },
+      {
+        "text": "a. $V = V’$. That is, the complement graph will have the same vertices as the original graph.",
+        "type": "",
+        "tag": "step1",
+        "depends": "reduce",
+        "indent": true,
+        "displaymath": true,
+        "feedback": ""
+      },
+      {
+        "text": "b. $E’$ is the complement of $E$ that is $G’$ has all the edges that is $\\textbf{not}$ present in $G$.",
+        "type": "",
+        "tag": "step2",
+        "depends": "step1",
+        "indent": true,
+        "displaymath": true,
+        "feedback": ""
+      },
+      {
+        "text": "Construction of the complementary graph can be done in polynomial time.",
+        "type": "",
+        "tag": "polynomial",
+        "depends": "step2",
+        "indent": true,
+        "displaymath": true,
+        "feedback": ""
+      },
+      {
+        "text": "We need to show that with this reduction, there is an independent set of size k in the complement graph if and only iff there exists a clique of size k in G.",
+        "type": "",
+        "tag": "iff",
+        "depends": "step2",
+        "indent": true,
+        "displaymath": true,
+        "feedback": ""
+      },
+      {
+        "text": "$\\textbf{If there is an independent set of size $k$ in the complement graph $G’$}$, it implies no two vertices share an edge in $G’$, which further implies all of those vertices share an edge with all others in $G$ forming a clique. That is, $\\textbf{there exists a clique of size $k$ in $G$}$.",
+        "type": "",
+        "tag": "if",
+        "depends": "iff",
+        "indent": true,
+        "displaymath": true,
+        "feedback": ""
+      },
+      {
+        "text": "$\\textbf{If there is a clique of size $k$ in the graph $G$}$, it implies all vertices share an edge with all others in $G$, which further implies no two of these vertices share an edge in $G’$ (thus forming an Independent Set. That is, $\\textbf{there exists an independent set of size $k$ in $G’$}$.",
+        "type": "",
+        "tag": "onlyif",
+        "depends": "iff",
+        "indent": true,
+        "displaymath": true,
+        "feedback": ""
+      }
     ]
   },
   "diags": [
-    "Parsons does not support nontrivial blocklists: {\"blockid\"=>\"inNPblock\", \"blocklist\"=>[{\"blockid\"=>\"inNP\", \"display\"=>\"Show that INDEPENDENT SET is in NP.\", \"depends\"=>\"\"}, {\"blockid\"=>\"algorithm\", \"display\"=>\"Nondeterministically guess some subset of the vertices. If this set is at least of size k (k is the parameter to the decision problem), and the vertices are all independent, then return YES. Otherwise return NO.\", \"depends\"=>\"inNP\"}, {\"blockid\"=>\"d1\", \"display\"=>\"Nondeterministically guess some collection of vertices. If the vertices are independent, and if it is the biggest such set, then return YES. Otherwise return NO.\", \"depends\"=>\"-1\"}]}.",
-    "Parsons does not support nontrivial blocklists: {\"blockid\"=>\"NPhardblock\", \"blocklist\"=>[{\"blockid\"=>\"NPhard\", \"display\"=>\"<ol>\\n  <li>Show that INDEPENDENT SET is NP-hard by using a reduction $\\\\$\\nof known NP-comlete problem CLIQUE to IS.</li>\\n</ol>\", \"depends\"=>\"\"}, {\"blockid\"=>\"d3\", \"display\"=>\"<ol>\\n  <li>Show that INDEPENDENT SET is NP-hard by using a reduction $\\\\$\\nof IS to known NP-complete problem CLIQUE.</li>\\n</ol>\", \"depends\"=>\"-1\"}, {\"blockid\"=>\"starthard\", \"display\"=>\"Show transformations to reduce <code>CLIQUE`IS</code> to <code>IS`CLIQUE</code>.\", \"depends\"=>\"NPhard\", \"toggle_options\"=>[{:start_index=>31, :end_index=>44, :values=>[\"CLIQUE\", \"IS\"]}, {:start_index=>48, :end_index=>61, :values=>[\"IS\", \"CLIQUE\"]}]}, {\"blockid\"=>\"reduce\", \"display\"=>\"<table>\\n  <tbody>\\n    <tr>\\n      <td>To reduce a [CLIQUE</td>\\n      <td>IS] input instance to an [IS</td>\\n      <td>CLIQUE] input instance for a given graph $G = (V , E)$, construct a complementary graph $G’ = (V’ , E’)$ such that:</td>\\n    </tr>\\n  </tbody>\\n</table>\", \"depends\"=>\"starthard\"}, {\"blockid\"=>\"step1\", \"display\"=>\"a. $V = V’$. That is, the complement graph will have the same vertices as the original graph.\", \"depends\"=>\"reduce\"}, {\"blockid\"=>\"step2\", \"display\"=>\"b. $E’$ is the complement of $E$ that is $G’$ has all the edges that is $\\\\textbf{not}$ present in $G$.\", \"depends\"=>\"step1\"}, {\"blockid\"=>\"polynomial\", \"display\"=>\"Construction of the complementary graph can be done in polynomial time.\", \"depends\"=>\"step2\"}, {\"blockid\"=>\"iff\", \"display\"=>\"We need to show that with this reduction, there is an independent set of size k in the complement graph if and only iff there exists a clique of size k in G.\", \"depends\"=>\"step2\"}, {\"blockid\"=>\"if\", \"display\"=>\"$\\\\textbf{If there is an independent set of size $k$ in the complement graph $G’$}$, it implies no two vertices share an edge in $G’$, which further implies all of those vertices share an edge with all others in $G$ forming a clique. That is, $\\\\textbf{there exists a clique of size $k$ in $G$}$.\", \"depends\"=>\"iff\"}, {\"blockid\"=>\"onlyif\", \"display\"=>\"$\\\\textbf{If there is a clique of size $k$ in the graph $G$}$, it implies all vertices share an edge with all others in $G$, which further implies no two of these vertices share an edge in $G’$ (thus forming an Independent Set. That is, $\\\\textbf{there exists an independent set of size $k$ in $G’$}$.\", \"depends\"=>\"iff\"}]}."
+    "Parsons does not support nontrivial blocklists: {\"blockid\"=>\"inNPblock\", \"blocklist\"=>[{\"blockid\"=>\"algorithm\", \"display\"=>\"Nondeterministically guess some subset of the vertices. If this set is at least of size k (k is the parameter to the decision problem), and the vertices are all independent, then return YES. Otherwise return NO.\", \"depends\"=>\"inNP\"}, {\"blockid\"=>\"d1\", \"display\"=>\"Nondeterministically guess some collection of vertices. If the vertices are independent, and if it is the biggest such set, then return YES. Otherwise return NO.\", \"depends\"=>\"-1\"}]}.",
+    "Parsons does not support nontrivial blocklists: {\"blockid\"=>\"NPhardblock\", \"blocklist\"=>[{\"blockid\"=>\"NPhard\", \"display\"=>\"<ol>\\n  <li>Show that INDEPENDENT SET is NP-hard by using a reduction $\\\\$\\nof known NP-comlete problem CLIQUE to IS.</li>\\n</ol>\", \"depends\"=>\"inNPblock\"}, {\"blockid\"=>\"d3\", \"display\"=>\"<ol>\\n  <li>Show that INDEPENDENT SET is NP-hard by using a reduction $\\\\$\\nof IS to known NP-complete problem CLIQUE.</li>\\n</ol>\", \"depends\"=>\"-1\"}]}."
   ]
 }

@@ -85,12 +85,7 @@ export default class Parsons extends RunestoneBase {
         Parsons.counter++; //    Unique identifier
         this.counterId = "parsons-" + Parsons.counter;
 
-        // Initialize options (mode-specific)
-        if (this.pifMode) {
-            this.initializeOptionsFromPIF();
-        } else {
-            this.initializeOptions();
-        }
+        this.initializeOptionsFromPIF();
         
         this.grader =
             this.options.grader === "dag"
@@ -103,13 +98,7 @@ export default class Parsons extends RunestoneBase {
         this.numDistinct = 0;
         this.hasSolved = false;
         
-        // Initialize lines (mode-specific)
-        if (this.pifMode) {
-            this.initializeLinesFromPIF();
-        } else {
-            var fulltext = $(this.origElem).html();
-            this.initializeLines(fulltext.trim());
-        }
+        this.initializeLinesFromPIF();
         
         this.initializeView();
         //Note: caption removed intentionally. Was previously set to "Parsons" in rs
@@ -163,7 +152,8 @@ export default class Parsons extends RunestoneBase {
             }
         }
         options.order = pifOptions.order || undefined;
-        options.noindent = !pifOptions.indent; // Note: PIF uses 'indent', Parsons uses 'noindent'
+        // options.noindent = !pifOptions.indent; // Note: PIF uses 'indent', Parsons uses 'noindent'
+        options.noindent = false;
         options.adaptive = pifOptions.adaptive || false;
         options.numbered = pifOptions.numbered || false;
         options.language = pifOptions.language || "none";
@@ -201,75 +191,6 @@ export default class Parsons extends RunestoneBase {
     this.options = options;
     }
 
-    
-    // Based on the data-fields in the original HTML, initialize options
-    initializeOptions() {
-        var options = {
-            pixelsPerIndent: 30,
-        };
-        // add maxdist and order if present
-        var maxdist = $(this.origElem).data("maxdist");
-        var order = $(this.origElem).data("order");
-        var noindent = $(this.origElem).data("noindent");
-        var adaptive = $(this.origElem).data("adaptive");
-        var numbered = $(this.origElem).data("numbered");
-        var grader = $(this.origElem).data("grader");
-        options["numbered"] = numbered;
-        options["grader"] = grader;
-        if (maxdist !== undefined) {
-            options["maxdist"] = maxdist;
-        }
-        if (order !== undefined) {
-            // convert order string to array of numbers
-            order = order.match(/\d+/g);
-            for (var i = 0; i < order.length; i++) {
-                order[i] = parseInt(order[i]);
-            }
-            options["order"] = order;
-        }
-        if (noindent == undefined) {
-            noindent = false;
-        }
-        options["noindent"] = noindent;
-        this.noindent = noindent;
-        if (adaptive == undefined) {
-            adaptive = false;
-        } else if (adaptive) {
-            this.initializeAdaptive();
-        }
-        options["adaptive"] = adaptive;
-        // add locale and language
-        var locale = eBookConfig.locale;
-        if (locale == undefined) {
-            locale = "en";
-        }
-        options["locale"] = locale;
-        var language = $(this.origElem).data("language");
-        if (language == undefined) {
-            language = eBookConfig.language;
-            if (language == undefined) {
-                language = "python";
-            }
-        }
-        options["language"] = language;
-        var prettifyLanguage = {
-            python: "prettyprint lang-py",
-            java: "prettyprint lang-java",
-            javascript: "prettyprint lang-js",
-            html: "prettyprint lang-html",
-            c: "prettyprint lang-c",
-            "c++": "prettyprint lang-cpp",
-            cpp: "prettyprint lang-cpp",
-            ruby: "prettyprint lang-rb",
-        }[language];
-        if (prettifyLanguage == undefined) {
-            prettifyLanguage = "";
-        }
-        options["prettifyLanguage"] = prettifyLanguage;
-        //runnable if the parent has a parsons-runnable attr
-        options["runnable"] = $(this.origElem).data("runnable");
-        this.options = options;
-    }
 
     initializeLinesFromPIF() {
         this.lines = [];
@@ -402,7 +323,6 @@ export default class Parsons extends RunestoneBase {
         
         this.solution = solution;
     }
-
 
     // Based on what is specified in the original HTML, create the HTML view
     initializeView() {
@@ -540,143 +460,6 @@ export default class Parsons extends RunestoneBase {
                 $(this.outerDiv).prepend(this.question);
             }
         }
-    }
-
-    // Initialize lines and solution properties
-    initializeLines(text) {
-        this.lines = [];
-        // Create the initial blocks
-        var textBlocks = text.split("---");
-        if (textBlocks.length === 1) {
-            // If there are no ---, then every line is its own block
-            textBlocks = text.split("\n");
-        }
-        var solution = [];
-        var indents = [];
-        for (var i = 0; i < textBlocks.length; i++) {
-            var textBlock = textBlocks[i];
-            // Figure out options based on the #option
-            // Remove the options from the code
-            // only options are #paired or #distractor
-            var options = {};
-            var distractIndex;
-            var distractHelptext = "";
-            var tagIndex;
-            var tag;
-            var dependsIndex;
-
-            var togglesArray = [];
-            // uncomment to test toggle functionality
-            // var togglesArray = [
-            //     {
-            //         pos: 5,
-            //         values: ["1","2","3"]
-            //     },
-            //     {
-            //         pos: 1,
-            //         values: ["true","false"]
-            //     }
-            // ];
-            var depends = [];
-            if (textBlock.includes("#paired:")) {
-                distractIndex = textBlock.indexOf("#paired:");
-                distractHelptext = textBlock
-                    .substring(distractIndex + 8, textBlock.length)
-                    .trim();
-                textBlock = textBlock.substring(0, distractIndex + 7);
-            } else if (textBlock.includes("#distractor:")) {
-                distractIndex = textBlock.indexOf("#distractor:");
-                distractHelptext = textBlock
-                    .substring(distractIndex + 12, textBlock.length)
-                    .trim();
-                textBlock = textBlock.substring(0, distractIndex + 11);
-            } else if (textBlock.includes("#tag:")) {
-                textBlock = textBlock.replace(/#tag:.*;.*;/, (s) =>
-                    s.replace(/\s+/g, "")
-                ); // remove whitespace in tag and depends list
-                tagIndex = textBlock.indexOf("#tag:");
-                tag = textBlock.substring(
-                    tagIndex + 5,
-                    textBlock.indexOf(";", tagIndex + 5)
-                );
-                if (tag == "") tag = "block-" + i;
-                dependsIndex = textBlock.indexOf("depends:");
-                let dependsString = textBlock.substring(
-                    dependsIndex + 9,
-                    textBlock.indexOf(";", dependsIndex + 9)
-                );
-                depends =
-                    dependsString.length > 0 ? dependsString.split(",") : [];
-            }
-            if (textBlock.includes('class="displaymath')) {
-                options["displaymath"] = true;
-            } else {
-                options["displaymath"] = false;
-            }
-            textBlock = textBlock.replace(
-                /\s*#(paired|distractor|reusable|tag:.*;.*;)\s*/g,
-                function (mystring, arg1) {
-                    options[arg1] = true;
-                    return "";
-                }
-            );
-            // Create lines
-            var lines = [];
-            if (!options["displaymath"]) {
-                var split = textBlock.split("\n");
-            } else {
-                var split = [textBlock];
-            }
-            for (var j = 0; j < split.length; j++) {
-                var code = split[j];
-                // discard blank rows
-                if (!/^\s*$/.test(code)) {
-                    var line = new ParsonsLine(
-                        this, blockText, displayMath, togglesArray, textArray
-                    );
-                    lines.push(line);
-                    if (options["reusable"]) {
-                        line.reusable = true;
-                    }
-                    if (options["paired"]) {
-                        line.distractor = true;
-                        line.paired = true;
-                        line.distractHelptext = distractHelptext;
-                    } else if (options["distractor"]) {
-                        line.distractor = true;
-                        line.paired = false;
-                        line.distractHelptext = distractHelptext;
-                    } else {
-                        line.distractor = false;
-                        line.paired = false;
-                        if (this.options.grader === "dag") {
-                            line.tag = tag;
-                            line.depends = depends;
-                        }
-                        solution.push(line);
-                    }
-                    if ($.inArray(line.indent, indents) == -1) {
-                        indents.push(line.indent);
-                    }
-                }
-            }
-            if (lines.length > 0) {
-                // Add groupWithNext
-                for (j = 0; j < lines.length - 1; j++) {
-                    lines[j].groupWithNext = true;
-                }
-                lines[lines.length - 1].groupWithNext = false;
-            }
-        }
-        // Normalize the indents
-        indents = indents.sort(function (a, b) {
-            return a - b;
-        });
-        for (i = 0; i < this.lines.length; i++) {
-            line = this.lines[i];
-            line.indent = indents.indexOf(line.indent);
-        }
-        this.solution = solution;
     }
 
     // Extracts code for execute grading
@@ -852,7 +635,6 @@ export default class Parsons extends RunestoneBase {
                 }
             }
             areaWidth = Math.max(areaWidth, item.outerWidth(true));
-            item.width(areaWidth - 22);
             var addition = 3.8;
             let outerH = item.outerHeight(true);
             if (outerH != 38) {
@@ -862,6 +644,16 @@ export default class Parsons extends RunestoneBase {
         }.bind(this);
         for (i = 0; i < blocks.length; i++) {
             await maxFunction($(blocks[i].view));
+        }
+        // Apply the final, true max width to every block only after it has
+        // been determined across ALL blocks. Blocks are shuffled into a new
+        // order on every initializeAreas() call (e.g. after Reset), so
+        // setting each block's width incrementally as we discovered the
+        // running max (as before) made the sizing depend on shuffle order -
+        // whichever blocks happened to come before the widest block in that
+        // particular shuffle ended up narrower than the rest.
+        for (i = 0; i < blocks.length; i++) {
+            $(blocks[i].view).width(areaWidth - 22);
         }
         // sometimes we have a problem with hidden elements not getting the right height
         // just make sure that we have a reasonable height. There must be a better way to
@@ -3181,11 +2973,6 @@ export default class Parsons extends RunestoneBase {
                     this.answerArea.getBoundingClientRect().top -
                     window.pageYOffset;
                 this.moving.indent = movingIndent;
-
-                //update line indent property after indenting
-                for(const line of this.moving.lines){
-                    line.indent = this.moving.indent;
-                }
 
                 var inDropZone = false;
                 var currentDropZoneIndex = -1;

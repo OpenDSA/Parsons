@@ -29,7 +29,7 @@
         "text": "System.out.print(\"I \");",
         "type": "",
         "tag": "two",
-        "depends": "",
+        "depends": "one",
         "indent": 1,
         "displaymath": false,
         "feedback": ""
@@ -38,7 +38,7 @@
         "text": "System.out.print(\"am \");",
         "type": "",
         "tag": "three",
-        "depends": "",
+        "depends": "two",
         "indent": 1,
         "displaymath": false,
         "feedback": ""
@@ -47,7 +47,7 @@
         "text": "System.out.print(\"a Java program \");",
         "type": "",
         "tag": "four",
-        "depends": "",
+        "depends": "three",
         "indent": 1,
         "displaymath": false,
         "feedback": ""
@@ -56,7 +56,7 @@
         "text": "}",
         "type": "",
         "tag": "five",
-        "depends": "",
+        "depends": "four",
         "indent": 0,
         "displaymath": false,
         "feedback": ""

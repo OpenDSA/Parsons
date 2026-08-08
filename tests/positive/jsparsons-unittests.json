@@ -4,15 +4,16 @@
     "options": {
       "grader": {
         "type": "exec",
-        "showFeedback": true
+        "show_feedback": true
       },
-      "maxdist": 0,
-      "order": "",
-      "indent": true,
+      "indent": {
+        "active": true,
+        "mode": "prescribed",
+        "max_indents": 3
+      },
       "adaptive": true,
       "numbered": false,
-      "language": "python",
-      "runnable": true
+      "language": "python"
     },
     "blocks": [
       {
@@ -20,53 +21,53 @@
         "type": "",
         "tag": "one",
         "depends": "",
-        "indent": "0",
-        "displaymath": true,
+        "indent": 0,
+        "displaymath": false,
         "feedback": ""
       },
       {
         "text": "ans = 0",
         "type": "",
         "tag": "two",
-        "depends": "",
-        "indent": "1",
-        "displaymath": true,
+        "depends": "one",
+        "indent": 1,
+        "displaymath": false,
         "feedback": ""
       },
       {
         "text": "for i in range(len(arg)):",
         "type": "",
         "tag": "three",
-        "depends": "",
-        "indent": "1",
-        "displaymath": true,
+        "depends": "two",
+        "indent": 1,
+        "displaymath": false,
         "feedback": ""
       },
       {
         "text": "if arg[i] > arg[ans]:",
         "type": "",
         "tag": "four",
-        "depends": "",
-        "indent": "2",
-        "displaymath": true,
+        "depends": "three",
+        "indent": 2,
+        "displaymath": false,
         "feedback": ""
       },
       {
         "text": "ans = i",
         "type": "",
         "tag": "five",
-        "depends": "",
-        "indent": "3",
-        "displaymath": true,
+        "depends": "four",
+        "indent": 3,
+        "displaymath": false,
         "feedback": ""
       },
       {
         "text": "return ans",
         "type": "",
         "tag": "six",
-        "depends": "",
-        "indent": "1",
-        "displaymath": true,
+        "depends": "five",
+        "indent": 1,
+        "displaymath": false,
         "feedback": ""
       }
     ]

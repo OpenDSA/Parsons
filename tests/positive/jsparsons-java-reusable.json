@@ -3,12 +3,12 @@
     "question_text": "<p>Construct code by reordering and indenting the lines.<br />\nYou MUST reuse the <code>}</code> block twice to complete the program.</p>\n",
     "options": {
       "grader": {
-        "type": "dag",
+        "type": "exec",
         "show_feedback": true
       },
       "indent": {
         "active": true,
-        "mode": "prescribed",
+        "mode": "free",
         "max_indents": 3
       },
       "adaptive": true,
@@ -21,7 +21,7 @@
         "type": "",
         "tag": "one",
         "depends": "",
-        "indent": 0,
+        "indent": true,
         "displaymath": false,
         "feedback": ""
       },
@@ -30,7 +30,7 @@
         "type": "",
         "tag": "two",
         "depends": "one",
-        "indent": 0,
+        "indent": true,
         "displaymath": false,
         "feedback": ""
       },
@@ -39,7 +39,7 @@
         "type": "",
         "tag": "three",
         "depends": "two",
-        "indent": 0,
+        "indent": true,
         "displaymath": false,
         "feedback": ""
       },
@@ -48,7 +48,7 @@
         "type": "",
         "tag": "four",
         "depends": "three",
-        "indent": 0,
+        "indent": true,
         "displaymath": false,
         "feedback": "",
         "reusable": true
