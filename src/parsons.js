@@ -769,14 +769,29 @@ export default class Parsons extends RunestoneBase {
                     groupDiv.className = "grouped-blocks-overlay";
                     groupDiv.setAttribute("data-group-tag", gTag);
 
+                    // "or" only makes sense when the group is actually a set of
+                    // interchangeable distractor alternatives (pick one). A
+                    // group with no distractors is just blocks that share an
+                    // order/tag for other reasons, so labeling it "or" would
+                    // be misleading. line.distractor is derived from each
+                    // PIF block's type (type === "distractor", or the
+                    // depends === "-1" shorthand) in initializeLinesFromPIF().
+                    var groupHasDistractor = groupBlocks.some(function (b) {
+                        return b.lines.some(function (l) {
+                            return l.distractor;
+                        });
+                    });
+
                     // Create the "or" indicator
                     var orIndicator = document.createElement("div");
                     orIndicator.className = "or-indicator";
 
-                    var orText = document.createElement("span");
-                    orText.className = "or-text";
-                    orText.textContent = "or";
-                    orIndicator.appendChild(orText);
+                    if (groupHasDistractor) {
+                        var orText = document.createElement("span");
+                        orText.className = "or-text";
+                        orText.textContent = "or";
+                        orIndicator.appendChild(orText);
+                    }
 
                     var curlyBrace = document.createElement("div");
                     curlyBrace.className = "curly-brace";

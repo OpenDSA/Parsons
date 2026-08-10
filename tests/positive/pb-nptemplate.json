@@ -71,7 +71,7 @@
         "reusable": false
       },
       {
-        "text": "Describe a polynomial-time algorithm that takes an arbitrary instance $\\textbf{I}$ of <code>A`X</code> to an instance $\\textbf{I'}$ of <code>X`A</code>.",
+        "text": "Describe a polynomial-time algorithm that takes an arbitrary instance $\\textbf{I}$ of <code>A`X</code> to an instance $\\textbf{I′}$ of <code>X`A</code>.",
         "tag": "NPhard-t1",
         "type": "",
         "depends": "NPhard-transfo",
@@ -80,7 +80,7 @@
         "reusable": false
       },
       {
-        "text": "Describe a polynomial-time transformation from the solution for $\\textbf{I'}$ in problem <code>X`A</code> (call it $\\textbf{SLN'}$) to $\\textbf{SLN}$ such that $\\textbf{SLN}$ is the solution for $\\textbf{I}$ in problem <code>A`X</code>.",
+        "text": "Describe a polynomial-time transformation from the solution for $\\textbf{I’}$ in problem <code>X`A</code> (call it $\\textbf{SLN’}$) to $\\textbf{SLN}$ such that $\\textbf{SLN}$ is the solution for $\\textbf{I}$ in problem <code>A`X</code>.",
         "tag": "NPhard-t2",
         "type": "",
         "depends": "NPhard-transfo",
@@ -90,5 +90,7 @@
       }
     ]
   },
-  "diags": []
+  "diags": [
+
+  ]
 }
