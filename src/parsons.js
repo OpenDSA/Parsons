@@ -623,15 +623,19 @@ export default class Parsons extends RunestoneBase {
                 this.options.language == "natural" ||
                 this.options.language == "math"
             ) {
-                if (typeof runestoneMathReady !== "undefined") {
-                    await runestoneMathReady.then(
-                        async () => await self.queueMathJax(item[0])
-                    );
-                } else {
-                    // this is for older rst builds not ptx
-                    if (typeof MathJax !== "undefined" && typeof MathJax.startup !== "undefined") {
-                        await self.queueMathJax(item[0]);
+                try {
+                    if (typeof runestoneMathReady !== "undefined") {
+                        await runestoneMathReady.then(
+                            async () => await self.queueMathJax(item[0])
+                        );
+                    } else {
+                        // this is for older rst builds not ptx
+                        if (typeof MathJax !== "undefined" && typeof MathJax.startup !== "undefined") {
+                            await self.queueMathJax(item[0]);
+                        }
                     }
+                } catch (e) {
+                    console.warn("MathJax failed to typeset a Parsons block; laying it out untypeset.", item[0], e);
                 }
             }
             areaWidth = Math.max(areaWidth, item.outerWidth(true));
@@ -822,7 +826,18 @@ export default class Parsons extends RunestoneBase {
             this.options.language == "math"
         ) {
             if (typeof MathJax !== "undefined" && typeof MathJax.startup !== "undefined") {
-                self.queueMathJax(self.outerDiv);
+                // Only typeset the question text here, not the whole outerDiv.
+                // outerDiv also contains every block's view, and those are
+                // already typeset individually (and awaited) in the
+                // initializeAreas() measurement loop. Passing outerDiv here
+                // fired a SECOND, unawaited, concurrent MathJax.typesetPromise
+                // call reprocessing the very same block elements the other
+                // loop is (or just finished) processing - re-typesetting
+                // already-typeset math is a known way to make MathJax throw
+                // internally.
+                if (self.question) {
+                    self.queueMathJax(self.question);
+                }
             }
         }
     }

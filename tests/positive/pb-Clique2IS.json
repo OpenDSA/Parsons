@@ -118,7 +118,6 @@
     ]
   },
   "diags": [
-    "Parsons does not support nontrivial blocklists: {\"blockid\"=>\"inNPblock\", \"blocklist\"=>[{\"blockid\"=>\"algorithm\", \"display\"=>\"Nondeterministically guess some subset of the vertices. If this set is at least of size k (k is the parameter to the decision problem), and the vertices are all independent, then return YES. Otherwise return NO.\", \"depends\"=>\"inNP\"}, {\"blockid\"=>\"d1\", \"display\"=>\"Nondeterministically guess some collection of vertices. If the vertices are independent, and if it is the biggest such set, then return YES. Otherwise return NO.\", \"depends\"=>\"-1\"}]}.",
-    "Parsons does not support nontrivial blocklists: {\"blockid\"=>\"NPhardblock\", \"blocklist\"=>[{\"blockid\"=>\"NPhard\", \"display\"=>\"<ol>\\n  <li>Show that INDEPENDENT SET is NP-hard by using a reduction $\\\\$\\nof known NP-comlete problem CLIQUE to IS.</li>\\n</ol>\", \"depends\"=>\"inNPblock\"}, {\"blockid\"=>\"d3\", \"display\"=>\"<ol>\\n  <li>Show that INDEPENDENT SET is NP-hard by using a reduction $\\\\$\\nof IS to known NP-complete problem CLIQUE.</li>\\n</ol>\", \"depends\"=>\"-1\"}]}."
+
   ]
 }
