@@ -27,7 +27,6 @@ require("./parsons-i18n.pt-br.js");
 require("./prettify.js");
 require("./css/parsons.css");
 require("./css/prettify.css");
-require("./css/index.css");
 import LineBasedGrader from "./lineGrader.js";
 import DAGGrader from "./dagGrader.js";
 import ParsonsLine from "./parsonsLine.js";
@@ -97,7 +96,8 @@ export default class Parsons extends RunestoneBase {
         this.checkCount = 0;
         this.numDistinct = 0;
         this.hasSolved = false;
-        
+        this.lastCheckedAnswerHash = null;
+
         this.initializeLinesFromPIF();
         
         this.initializeView();
@@ -1701,7 +1701,7 @@ export default class Parsons extends RunestoneBase {
 
     // The "Check Me" button was pressed.
     checkCurrentAnswer() {
-        if (!this.hasSolved) {
+        if (!$(this.checkButton).prop("disabled")) {
             this.checkCount++;
             this.clearFeedback();
             if (this.adaptiveId == undefined) {
@@ -1711,6 +1711,7 @@ export default class Parsons extends RunestoneBase {
             // to disable feedback set this.grader.showfeedback boolean
             this.grader.showfeedback = false;
             this.grade = this.grader.grade();
+            this.lastCheckedAnswerHash = this.answerHash();
             if (this.grade == "correct") {
                 this.hasSolved = true;
                 this.correct = true;
@@ -3206,6 +3207,12 @@ export default class Parsons extends RunestoneBase {
         }
         state = newState;
         this.state = state;
+
+        if ($(this.checkButton).prop("disabled") &&
+            this.answerHash() !== this.lastCheckedAnswerHash) {
+            $(this.checkButton).prop("disabled", false);
+            this.clearFeedback();
+        }
     }
 
     addBlockLabels(blocks) {
