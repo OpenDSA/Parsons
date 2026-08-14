@@ -351,6 +351,7 @@ app.get('/parsons/test/:name', (req, res) => {
                         orig: document.getElementById('parsons-container'),
                         pifJson: ${JSON.stringify(parsedJson)},
                         divid:'parsons-container',
+                        showFeedback: true
                         useRunestoneServices: false
                     });
                     // // CodeWorkout's own page code, wherever it currently builds the DOM for a Parsons problem:

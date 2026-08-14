@@ -35,7 +35,10 @@ export default class RunestoneBase {
         if (opts) {
             this.sid = opts.sid;
             this.graderactive = opts.graderactive;
-            this.showfeedback = true;
+            // Controls only whether the component renders its own grading
+            // feedback UI. Sets default for the system. Can be overidden on a
+            // per exercise basis in grader.show_feedback in PIF
+            this.showfeedback = opts.showFeedback !== false;
             if (opts.timed) {
                 this.isTimed = true;
             }
