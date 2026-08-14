@@ -3,14 +3,14 @@ const express = require('express');
 const fs = require('fs')
 const path = require('path');
 const multer = require('multer');
-const {renderPage, parsonsPageTemplate} = require('./renderer');
-const {injectFromPIF} = require('./helpers/parsonsBuild')
-const {parsePIF, downloadFile} = require('./helpers/pifParsingHelpers')
-const {logEvent} = require('./helpers/logger');
+const { renderPage, parsonsPageTemplate } = require('./renderer');
+const { injectFromPIF } = require('./helpers/parsonsBuild')
+const { parsePIF, downloadFile } = require('./helpers/pifParsingHelpers')
+const { logEvent } = require('./helpers/logger');
 
 
 //Virtual Dom
-const {JSDOM} = require('jsdom');
+const { JSDOM } = require('jsdom');
 const jqueryFactory = require('jquery');
 
 const storage = multer.diskStorage({
@@ -25,7 +25,7 @@ const upload = multer(
         storage,
         fileFilter: (req, file, cb) => {
             const ext = path.extname(file.originalname).toLowerCase();
-            if ( ext === '.peml') {
+            if (ext === '.peml') {
                 cb(null, true);
             } else {
                 cb(new Error('Only .peml files are allowed'));
@@ -61,24 +61,24 @@ app.delete('/parsons/delete/:filename', (req, res) => {
     const filename = req.params.filename;
     const uploadsDir = path.join(__dirname, '../uploads');
     const filePath = path.join(uploadsDir, filename);
-    
+
     logEvent(`Deleting file ${filename}`);
-    
+
     // Security check: ensure the file is in the uploads directory
     if (!filePath.startsWith(uploadsDir)) {
         return res.status(400).send('Invalid file path');
     }
-    
+
     if (!fs.existsSync(filePath)) {
         return res.status(404).send('File not found');
     }
-    
+
     fs.unlink(filePath, (err) => {
         if (err) {
             console.error('Error deleting file:', err);
             return res.status(500).send('Error deleting file');
         }
-        
+
         console.log(`File ${filename} deleted successfully`);
         res.status(200).send('File deleted successfully');
     });
@@ -94,13 +94,13 @@ app.get('/parsons/bundle.js', (req, res) => {
 app.get('/parsons/dist/:filename', (req, res) => {
     const filePath = req.params.filename; // Get everything after /parsons/dist/
     const fullPath = path.join(__dirname, '../dist', filePath);
-    
+
     // Security check: ensure the file is in the dist directory
     const distPath = path.resolve(__dirname, '../dist');
     if (!fullPath.startsWith(distPath)) {
         return res.status(400).send('Invalid file path');
     }
-    
+
     res.sendFile(fullPath, (err) => {
         if (err) {
             console.error('Error serving dist file:', err);
@@ -114,28 +114,28 @@ app.get('/parsons/dist-assets', (req, res) => {
     try {
         const distPath = path.join(__dirname, '../dist');
         const files = fs.readdirSync(distPath);
-        
+
         const jsFiles = files.filter(file => file.endsWith('.js'));
         const svgFiles = files.filter(file => file.endsWith('.svg'));
         const cssFiles = files.filter(file => file.endsWith('.css'));
-        
+
         let html = '';
-        
+
         // Add CSS files
         cssFiles.forEach(file => {
             html += `<link rel="stylesheet" href="/parsons/dist/${file}">\n`;
         });
-        
+
         // Add JavaScript files
         jsFiles.forEach(file => {
             html += `<script src="/parsons/dist/${file}"></script>\n`;
         });
-        
+
         // Add SVG files as preload links for better performance
         svgFiles.forEach(file => {
             html += `<link rel="preload" href="/parsons/dist/${file}" as="image" type="image/svg+xml">\n`;
         });
-        
+
         res.setHeader('Content-Type', 'text/html');
         res.send(html);
     } catch (error) {
@@ -147,12 +147,12 @@ app.get('/parsons/dist-assets', (req, res) => {
 // Get all available files
 app.get('/parsons/api/files', async (req, res) => {
     try {
-        const {getAllAvailableFiles} = require('./helpers/pifParsingHelpers');
+        const { getAllAvailableFiles } = require('./helpers/pifParsingHelpers');
         const files = await getAllAvailableFiles();
         res.json(files);
     } catch (error) {
         console.error('Error getting file list:', error);
-        res.status(500).json({error: 'Failed to get file list'});
+        res.status(500).json({ error: 'Failed to get file list' });
     }
 });
 
@@ -170,7 +170,7 @@ app.get('/parsons/pif/:source/:filename', async (req, res) => {
     let error = null;
 
     try {
-        if (source === 'github'){
+        if (source === 'github') {
             await downloadFile(filename);
         }
 
@@ -191,12 +191,12 @@ app.get('/parsons/pif/:source/:filename', async (req, res) => {
 
     if (error) {
         // Handle file not found or parsing errors gracefully
-        const errorMessage = error.message.includes('ENOENT') || error.message.includes('not found') 
+        const errorMessage = error.message.includes('ENOENT') || error.message.includes('not found')
             ? `File "${filename}" not found in ${source === 'github' ? 'GitHub repository' : 'uploads'}.`
             : `Error parsing file "${filename}": ${error.message}`;
-        
+
         const backToHomeButton = isolatedExercise ? '' : `<p><a href="/parsons/" style="color: #721c24; text-decoration: underline;">← Back to Home</a></p>`;
-        
+
         $('body').append(`
             <div style="padding: 20px; margin: 20px; border: 1px solid #dc3545; border-radius: 5px; background-color: #f8d7da; color: #721c24;">
                 <h2 style="color: #721c24; margin-top: 0;">File Not Found</h2>
@@ -214,8 +214,8 @@ app.get('/parsons/pif/:source/:filename', async (req, res) => {
                     <a href="/parsons/" style="display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">← Back to Home</a>
                 </div>
             `);
-        } 
-        
+        }
+
         if (showNoPrompt) {
             $('.parsons-text').hide();
         }
@@ -254,12 +254,12 @@ app.get('/parsons/pifjson/:source/:filename', async (req, res) => {
 
     if (error) {
         // Handle file not found or parsing errors gracefully
-        const errorMessage = error.message.includes('ENOENT') || error.message.includes('not found') 
+        const errorMessage = error.message.includes('ENOENT') || error.message.includes('not found')
             ? `File "${filename}" not found in ${source === 'github' ? 'GitHub repository' : 'uploads'}.`
             : `Error parsing file "${filename}": ${error.message}`;
-        
+
         const backToHomeButton = isolatedExercise ? '' : `<p><a href="/parsons/" style="color: #721c24; text-decoration: underline;">← Back to Home</a></p>`;
-        
+
         $('body').append(`
             <div style="padding: 20px; margin: 20px; border: 1px solid #dc3545; border-radius: 5px; background-color: #f8d7da; color: #721c24;">
                 <h2 style="color: #721c24; margin-top: 0;">File Not Found</h2>
@@ -350,9 +350,25 @@ app.get('/parsons/test/:name', (req, res) => {
                     new Parsons({
                         orig: document.getElementById('parsons-container'),
                         pifJson: ${JSON.stringify(parsedJson)},
-                        divid: 'parsons-container',
+                        divid:'parsons-container',
                         useRunestoneServices: false
                     });
+                    // // CodeWorkout's own page code, wherever it currently builds the DOM for a Parsons problem:
+                    // var lastSaved = null;
+                    // new Parsons({
+                    //     orig: document.getElementById('parsons-container'),
+                    //     pifJson: ${JSON.stringify(parsedJson)},
+                    //     initialState: {source: "-", answer: "2_0-1_0-0_0", correct: false, checkCount: 2, timestamp: ""},   // e.g. {source, answer, correct, timestamp} | null
+                    //     divid:'parsons-container',
+                    //     onStateChange: function (state) {
+                    //         // state = {source, answer, correct, checkCount, timestamp} — plain data, no HTTP baked in
+                    //         // CodeWorkout decides everything from here: which endpoint, what auth,
+                    //         // whether to batch/debounce, whether to go through a websocket, etc.
+                    //         // CodeWorkout.api.saveProgress(problemId, studentId, state);
+                    //         console.log(state)
+                    //         lastSaved = state
+                    //     }
+                    // });
                 } catch (error) {
                     console.error('Error initializing Parsons:', error);
                     document.getElementById('parsons-container').innerHTML =

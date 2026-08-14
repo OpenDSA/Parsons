@@ -31,7 +31,12 @@ import LineBasedGrader from "./lineGrader.js";
 import DAGGrader from "./dagGrader.js";
 import ParsonsLine from "./parsonsLine.js";
 import ParsonsBlock from "./parsonsBlock.js";
-// import {injectHTML, loadFile, renderAll} from "./helpers";
+
+// This only fills the gap when nothing set it up, so property don't throw
+// ReferenceErrors.
+if (typeof window !== "undefined" && typeof window.eBookConfig === "undefined") {
+    window.eBookConfig = {};
+}
 
 /* =====================================================================
 ==== Parsons Object ====================================================
@@ -77,6 +82,10 @@ export default class Parsons extends RunestoneBase {
         
         // Common initialization
         this.useRunestoneServices = opts.useRunestoneServices;
+        // Generic state-in/state-out hooks: the host passes the saved state
+        // directly and gets notified with a plain state object whenever it 
+        // changes. No course or user data needed
+        this.onStateChange = typeof opts.onStateChange === "function" ? opts.onStateChange : undefined;
         var storageId = super.localStorageKey();
         this.storageId = storageId;
         this.children = this.pifMode ? [] : this.origElem.childNodes;
@@ -107,9 +116,18 @@ export default class Parsons extends RunestoneBase {
         
         // Initialize blocks for PIF mode or check server for regular mode
         if (this.pifMode) {
-            // Initialize blocks directly in PIF mode
-            this.initializeAreas(this.blocksFromSource(), this.fixedBlocks(), {});
-            this.initializeInteractivity();
+            if (opts.initialState) {
+                // The host (e.g. its server, which instantiated this problem)
+                // already knows whether saved state exists and hands it to
+                // us synchronously — no fetch needed here. loadData() rebuilds
+                // the blocks from it and, if it graded correct, leaves the
+                // check button disabled to match.
+                this.loadData(opts.initialState);
+            } else {
+                // No saved state (host indicated there isn't one): start fresh.
+                this.initializeAreas(this.blocksFromSource(), this.fixedBlocks(), {});
+                this.initializeInteractivity();
+            }
         } else {
             // Check the server for an answer to complete things
             this.checkServer("parsons", true);
@@ -426,8 +444,12 @@ export default class Parsons extends RunestoneBase {
             $(that.checkButton).prop("disabled", false);
             that.resetView();
             that.checkCount = 0;
+            that.correct = null;
+            that.grade = undefined;
+            that.lastCheckedAnswerHash = null;
             that.logMove("reset");
             that.setLocalStorage();
+            that.emitStateChange();
         });
         if (this.options.adaptive) {
             this.helpButton = document.createElement("button");
@@ -931,6 +953,9 @@ export default class Parsons extends RunestoneBase {
             this.grade = this.grader.grade();
             if (this.grade == "correct") {
                 this.correct = true;
+                this.hasSolved = true;
+                this.lastCheckedAnswerHash = answerHash;
+                $(this.checkButton).prop("disabled", true);
             } else if (this.answerLines().length == 0) {
                 this.correct = null;
             } else {
@@ -996,6 +1021,25 @@ export default class Parsons extends RunestoneBase {
             toStore = data;
         }
         localStorage.setItem(this.storageId, JSON.stringify(toStore));
+    }
+
+    // A plain, serializable snapshot of the problem's current state.
+    currentState() {
+        return {
+            source: this.sourceHash(),
+            answer: this.answerHash(),
+            correct: this.correct === undefined ? null : this.correct,
+            checkCount: this.checkCount,
+            timestamp: new Date(),
+        };
+    }
+
+    // Hand the current state to the host-supplied callback, if any, so the
+    // host can persist it however it likes.
+    emitStateChange() {
+        if (this.onStateChange) {
+            this.onStateChange(this.currentState());
+        }
     }
 
     /* =====================================================================
@@ -1711,7 +1755,8 @@ export default class Parsons extends RunestoneBase {
             // to disable feedback set this.grader.showfeedback boolean
             this.grader.showfeedback = false;
             this.grade = this.grader.grade();
-            this.lastCheckedAnswerHash = this.answerHash();
+            var answerHash = this.answerHash();
+            this.lastCheckedAnswerHash = answerHash;
             if (this.grade == "correct") {
                 this.hasSolved = true;
                 this.correct = true;
@@ -1722,18 +1767,20 @@ export default class Parsons extends RunestoneBase {
                     this.adaptiveId + "recentAttempts",
                     this.recentAttempts
                 );
+            } else {
+                this.correct = false;
             }
             localStorage.setItem(
                 this.adaptiveId + this.divid + "Count",
                 this.checkCount
             );
             this.setLocalStorage();
+            this.emitStateChange();
 
             // if not solved and not too short then check if should provide help
             if (!this.hasSolved && this.grade !== "incorrectTooShort") {
                 if (this.canHelp) {
                     // only count the attempt if the answer is different (to prevent gaming)
-                    var answerHash = this.answerHash();
                     if (this.lastAnswerHash !== answerHash) {
                         this.numDistinct++;
                         this.lastAnswerHash = answerHash;
