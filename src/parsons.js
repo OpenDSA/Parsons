@@ -3532,6 +3532,13 @@ export default class Parsons extends RunestoneBase {
         }
         this.groupedBlocksMap = {};
         $(this.sourceArea).attr("style", "");
+        // initializeAreas()'s measurement loop needs the source area to have
+        // a sane max width to measure blocks against (see the matching
+        // assignment + comment in the constructor) - without it, the
+        // now-unconstrained container collapses to a sliver, text wraps far
+        // more than it should, and the inflated heights get baked into both
+        // regions' final size.
+        this.sourceArea.style.width = "425px"; // The max it will be resized later.
         $(this.answerArea).removeClass();
         $(this.answerArea).attr("style", "");
         // Remove existing drop zones
