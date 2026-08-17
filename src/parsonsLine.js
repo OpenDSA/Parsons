@@ -18,14 +18,16 @@
 // Initialize from codestring
 
 import ParsonsToggle from './parsonsToggle.js';
+import ParsonsTextInput from './parsonsTextInput.js';
 
 export default class ParsonsLine {
-    constructor(problem, codestring, displaymath, togglesArray) {
+    constructor(problem, codestring, displaymath, togglesArray = [], textArray = []) {
         this.problem = problem;
         this.index = problem.lines.length;
         var trimmed = codestring.replace(/\s*$/, "");
         this.text = trimmed.replace(/^\s*/, "");
         this.toggles = [];
+        this.textInputs = [];
 
         //28-31: Not from Runestone
         // this.text = this.text.replace(/\*\*(.*?)\*\*/g, '\(\textbf{$1}\)');
@@ -50,25 +52,114 @@ export default class ParsonsLine {
         }
         view.id = problem.counterId + "-line-" + this.index;
 
-        //creating toggles within text
-        if(togglesArray.length > 0){
-            for(let i = 0; i < togglesArray.length; i++){
-                //creates a new toggleobject
-                const toggle = new ParsonsToggle(togglesArray[i].values);
-                this.toggles.push(toggle);
+        //combine toggle and text arrays into one
+        const togglesAndTextInput = [
+            ...togglesArray.map(toggle => ({ ...toggle, type: 'toggle'})),
+            ...textArray.map(textInput => ({ ...textInput, type: 'text'}))
+        ]
 
-                //inserts toggle into the inner html
-                const index = togglesArray[i].pos;
-                const endString = this.text.slice(index);
-                const startString = this.text.slice(0, index);
-                this.text = startString + " " + toggle.htmlContent + " " + endString;
+        //sort by earliest start index
+        togglesAndTextInput.sort((a, b) => a.start_index - b.start_index);
+
+        //array for dom nodes that will be appended to view later
+        this.nodes = [];
+        let lastIndex = 0;
+
+        togglesAndTextInput.forEach(t => {
+
+            //add text between two toggles/delimiters
+            if (t.start_index > lastIndex) {
+                const leadingText = this.text.slice(lastIndex, t.start_index);
+                this.nodes.push(document.createTextNode(leadingText));
             }
+
+            if (t.type === 'toggle') {
+                const toggle = new ParsonsToggle(t, this);
+                this.toggles.push(toggle);
+                this.nodes.push(toggle.button);
+            } else {
+                const textInput = new ParsonsTextInput(t, this);
+                this.textInputs.push(textInput);
+                this.nodes.push(textInput.text_input);
+            }
+
+            lastIndex = t.end_index;
+        });
+
+        // Final tail of the string
+        if (lastIndex < this.text.length) {
+            this.nodes.push(document.createTextNode(this.text.slice(lastIndex)));
         }
 
-        view.innerHTML += this.text;
+        this.nodes.forEach(node => {
+            view.appendChild(node);
+        })
+
         this.view = view;
         problem.lines.push(this);
+
+        //track how the string grows or shortens as text is changed
+        let cumulativeOffset = 0;
+
+        //update text to remove delimiters and reflect actual state
+        [...this.toggles, ...this.textInputs]
+            .sort((a, b) => a.start_index - b.start_index)
+            .forEach(t => {
+            let text;
+            let start;
+            let end;
+
+            if (t instanceof ParsonsToggle) {
+                text = t.button.textContent;
+                start = t.start_index;
+                end = t.end_index;
+            } else {
+                text = t.inner_content;
+                start = t.start_index;
+                end = t.end_index;
+            }
+
+            start += cumulativeOffset;
+            end += cumulativeOffset;
+
+            this.text = this.text.slice(0, start) + text + this.text.slice(end);
+            t.start_index = start;
+            t.end_index = start + text.length;
+
+            const lengthDifference = text.length - (end - start);
+            cumulativeOffset += lengthDifference;
+        });
     }
+
+    //updates text after changing text input or toggle
+    updateText(replacement, start_index, old_end_index){
+        const lengthDifference =  replacement.length - (old_end_index - start_index);
+        this.shiftSiblingIndices(start_index, lengthDifference);
+        this.text = this.text.slice(0, start_index) + replacement + this.text.slice(old_end_index);
+        console.log(this.text);
+    }
+
+    //shifts end and start index when toggles and text inputs are modified
+    shiftSiblingIndices(changedStartIndex, shiftAmount) {
+        if (shiftAmount === 0) return;
+
+        // Shift toggles that come after the one edited
+        this.toggles.forEach(toggle => {
+            if (toggle.start_index > changedStartIndex) {
+                toggle.start_index += shiftAmount;
+                toggle.end_index += shiftAmount;
+            }
+        });
+
+        // Shift text inputs after the one edited
+        this.textInputs.forEach(input => {
+            if (input.start_index > changedStartIndex) {
+                input.start_index += shiftAmount;
+                input.end_index += shiftAmount;
+            }
+        });
+    }
+
     // Initialize what width the line would naturally have (without indent)
     initializeWidth() {
         // this.width does not appear to be used anywhere later

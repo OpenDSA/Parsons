@@ -1,0 +1,122 @@
+{
+  "value": {
+    "question_text": "<p>Show a proof that the decision form of Independent Set is NP-complete.</p>\n",
+    "options": {
+      "grader": {
+        "type": "dag",
+        "show_feedback": true
+      },
+      "indent": {
+        "active": true,
+        "mode": "free",
+        "max_indents": 1
+      },
+      "adaptive": true,
+      "numbered": false,
+      "language": "natural"
+    },
+    "blocks": [
+      {
+        "text": "Show that INDEPENDENT SET is in NP.",
+        "type": "",
+        "tag": "inNP",
+        "depends": "",
+        "indent": true,
+        "displaymath": true,
+        "feedback": ""
+      },
+      {
+        "text": "Show transformations to reduce <code>CLIQUE`IS</code> to <code>IS`CLIQUE</code>.",
+        "type": "",
+        "tag": "starthard",
+        "depends": "NPhardblock",
+        "indent": true,
+        "displaymath": true,
+        "feedback": "",
+        "toggle_options": [
+          {
+            "start_index": 31,
+            "end_index": 44,
+            "values": [
+              "CLIQUE",
+              "IS"
+            ]
+          },
+          {
+            "start_index": 48,
+            "end_index": 61,
+            "values": [
+              "IS",
+              "CLIQUE"
+            ]
+          }
+        ]
+      },
+      {
+        "text": "<table>\n  <tbody>\n    <tr>\n      <td>To reduce a [CLIQUE</td>\n      <td>IS] input instance to an [IS</td>\n      <td>CLIQUE] input instance for a given graph $G = (V , E)$, construct a complementary graph $G’ = (V’ , E’)$ such that:</td>\n    </tr>\n  </tbody>\n</table>",
+        "type": "",
+        "tag": "reduce",
+        "depends": "starthard",
+        "indent": true,
+        "displaymath": true,
+        "feedback": ""
+      },
+      {
+        "text": "a. $V = V’$. That is, the complement graph will have the same vertices as the original graph.",
+        "type": "",
+        "tag": "step1",
+        "depends": "reduce",
+        "indent": true,
+        "displaymath": true,
+        "feedback": ""
+      },
+      {
+        "text": "b. $E’$ is the complement of $E$ that is $G’$ has all the edges that is $\\textbf{not}$ present in $G$.",
+        "type": "",
+        "tag": "step2",
+        "depends": "step1",
+        "indent": true,
+        "displaymath": true,
+        "feedback": ""
+      },
+      {
+        "text": "Construction of the complementary graph can be done in polynomial time.",
+        "type": "",
+        "tag": "polynomial",
+        "depends": "step2",
+        "indent": true,
+        "displaymath": true,
+        "feedback": ""
+      },
+      {
+        "text": "We need to show that with this reduction, there is an independent set of size k in the complement graph if and only iff there exists a clique of size k in G.",
+        "type": "",
+        "tag": "iff",
+        "depends": "step2",
+        "indent": true,
+        "displaymath": true,
+        "feedback": ""
+      },
+      {
+        "text": "$\\textbf{If there is an independent set of size $k$ in the complement graph $G’$}$, it implies no two vertices share an edge in $G’$, which further implies all of those vertices share an edge with all others in $G$ forming a clique. That is, $\\textbf{there exists a clique of size $k$ in $G$}$.",
+        "type": "",
+        "tag": "if",
+        "depends": "iff",
+        "indent": true,
+        "displaymath": true,
+        "feedback": ""
+      },
+      {
+        "text": "$\\textbf{If there is a clique of size $k$ in the graph $G$}$, it implies all vertices share an edge with all others in $G$, which further implies no two of these vertices share an edge in $G’$ (thus forming an Independent Set. That is, $\\textbf{there exists an independent set of size $k$ in $G’$}$.",
+        "type": "",
+        "tag": "onlyif",
+        "depends": "iff",
+        "indent": true,
+        "displaymath": true,
+        "feedback": ""
+      }
+    ]
+  },
+  "diags": [
+  ]
+}

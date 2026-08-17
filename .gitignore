@@ -1,6 +1,7 @@
 node_modules
 .idea/
 dist/
+.vscode
 
 #sample input files for testing. Not essential to ignore
 #test-inputs/
@@ -12,7 +13,7 @@ modules.csv
 *.bak
 
 # For MAC users
-*.DS_Store
+.DS_Store
 
 uploads
 downloads

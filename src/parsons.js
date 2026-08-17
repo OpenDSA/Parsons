@@ -27,12 +27,16 @@ require("./parsons-i18n.pt-br.js");
 require("./prettify.js");
 require("./css/parsons.css");
 require("./css/prettify.css");
-require("./css/index.css");
 import LineBasedGrader from "./lineGrader.js";
 import DAGGrader from "./dagGrader.js";
 import ParsonsLine from "./parsonsLine.js";
 import ParsonsBlock from "./parsonsBlock.js";
-// import {injectHTML, loadFile, renderAll} from "./helpers";
+
+// This only fills the gap when nothing set it up, so property don't throw
+// ReferenceErrors.
+if (typeof window !== "undefined" && typeof window.eBookConfig === "undefined") {
+    window.eBookConfig = {};
+}
 
 /* =====================================================================
 ==== Parsons Object ====================================================
@@ -56,7 +60,7 @@ import ParsonsBlock from "./parsonsBlock.js";
 export default class Parsons extends RunestoneBase {
     constructor(opts) {
         super(opts);
-        
+
         // Determine mode: PIF JSON vs HTML
         if (opts.pifJson) {
             // NEW: PIF JSON mode
@@ -66,18 +70,32 @@ export default class Parsons extends RunestoneBase {
             this.origElem = null; // No HTML source
             this.question = null; // Will create from JSON
             this.divid = opts.divid || "parsons-" + Date.now();
-        } else {
-            // EXISTING: HTML mode
-            this.pifMode = false;
-            var orig = opts.orig;
-            this.containerDiv = orig;
-            this.origElem = $(orig).find("pre.parsonsblocks")[0];
-            this.question = $(orig).find(`.parsons_question`)[0];
-            this.divid = opts.orig.id;
         }
-        
+
         // Common initialization
         this.useRunestoneServices = opts.useRunestoneServices;
+        // Generic state-in/state-out hooks: the host passes the saved state
+        // directly and gets notified with a plain state object whenever it 
+        // changes. No course or user data needed
+        this.onStateChange = typeof opts.onStateChange === "function" ? opts.onStateChange : undefined;
+
+        //for accessing grading feedback regardless of showFeedback setting
+        this.onFeedback = typeof opts.onFeedback === "function" ? opts.onFeedback : undefined;
+
+        // Independent of showFeedback/grader.showfeedback: suppresses only
+        // the text message box at the bottom. Block-level highlighting
+        // (correct/incorrect/indentLeft/indentRight/incorrectPosition) is
+        // never affected by this — see paintFeedback().
+        this.showFeedbackText = opts.showFeedbackText !== false;
+
+        //for toggling console logs
+        this.debugFeedback = Boolean(opts.debugFeedback);
+        this.onDebugFeedback = typeof opts.onDebugFeedback === "function" ? opts.onDebugFeedback : undefined;
+
+        // Button Hooks for onClick
+        this.onCheck = typeof opts.onCheck === "function" ? opts.onCheck : undefined;
+        this.onReset = typeof opts.onReset === "function" ? opts.onReset : undefined;
+
         var storageId = super.localStorageKey();
         this.storageId = storageId;
         this.children = this.pifMode ? [] : this.origElem.childNodes;
@@ -85,42 +103,44 @@ export default class Parsons extends RunestoneBase {
         Parsons.counter++; //    Unique identifier
         this.counterId = "parsons-" + Parsons.counter;
 
-        // Initialize options (mode-specific)
-        if (this.pifMode) {
-            this.initializeOptionsFromPIF();
-        } else {
-            this.initializeOptions();
-        }
-        
+        this.initializeOptionsFromPIF();
+
         this.grader =
             this.options.grader === "dag"
                 ? new DAGGrader(this)
                 : new LineBasedGrader(this);
-        this.grader.showfeedback = this.showfeedback;
-        
+        // TODO: Have to classify types of feedback. Does indent correct fall under feedback?
+        this.grader.showfeedback = this.options.showFeedback !== undefined
+            ? this.options.showFeedback
+            : this.showfeedback;
+
         this.blockIndex = 0;
         this.checkCount = 0;
         this.numDistinct = 0;
         this.hasSolved = false;
-        
-        // Initialize lines (mode-specific)
-        if (this.pifMode) {
-            this.initializeLinesFromPIF();
-        } else {
-            var fulltext = $(this.origElem).html();
-            this.initializeLines(fulltext.trim());
-        }
-        
+        this.lastCheckedAnswerHash = null;
+
+        this.initializeLinesFromPIF();
+
         this.initializeView();
         //Note: caption removed intentionally. Was previously set to "Parsons" in rs
         this.caption = "";
         this.addCaption("runestone");
-        
+
         // Initialize blocks for PIF mode or check server for regular mode
         if (this.pifMode) {
-            // Initialize blocks directly in PIF mode
-            this.initializeAreas(this.blocksFromSource(), this.fixedBlocks(), {});
-            this.initializeInteractivity();
+            if (opts.initialState) {
+                // The host (e.g. its server, which instantiated this problem)
+                // already knows whether saved state exists and hands it to
+                // us synchronously — no fetch needed here. loadData() rebuilds
+                // the blocks from it and, if it graded correct, leaves the
+                // check button disabled to match.
+                this.loadData(opts.initialState);
+            } else {
+                // No saved state (host indicated there isn't one): start fresh.
+                this.initializeAreas(this.blocksFromSource(), this.fixedBlocks(), {});
+                this.initializeInteractivity();
+            }
         } else {
             // Check the server for an answer to complete things
             this.checkServer("parsons", true);
@@ -131,24 +151,27 @@ export default class Parsons extends RunestoneBase {
         this.runnableDiv = null;
     }
 
-    initializeOptionsFromPIF()
-    {
+    initializeOptionsFromPIF() {
         var options = {
             pixelsPerIndent: 30,
         };
 
         // Parse the JSON and extract relevant options
         if (!this.pifData || !this.pifData.options) {
-            console.warn("Invalid PIF JSON data, using defaults");
+            this.reportDebugFeedback("Invalid PIF JSON data, using defaults");
             this.options = options; // Set default options if JSON is invalid
             return;
-        }   
+        }
         const pifOptions = this.pifData.options;
 
         if (pifOptions.grader) {
             if (typeof pifOptions.grader === 'object') {
                 options.grader = pifOptions.grader.type || "line";
-                // Note: showFeedback is handled elsewhere in the system
+                // A PIF-authored grader.show_feedback is more specific than
+                // the opts.showFeedback constructor option and overrides it
+                if (Object.prototype.hasOwnProperty.call(pifOptions.grader, "show_feedback")) {
+                    options.showFeedback = Boolean(pifOptions.grader.show_feedback);
+                }
             } else {
                 options.grader = pifOptions.grader;
             }
@@ -163,19 +186,20 @@ export default class Parsons extends RunestoneBase {
             }
         }
         options.order = pifOptions.order || undefined;
-        options.noindent = !pifOptions.indent; // Note: PIF uses 'indent', Parsons uses 'noindent'
+        // options.noindent = !pifOptions.indent; // Note: PIF uses 'indent', Parsons uses 'noindent'
+        options.noindent = false;
         options.adaptive = pifOptions.adaptive || false;
         options.numbered = pifOptions.numbered || false;
         options.language = pifOptions.language || "none";
         options.runnable = pifOptions.runnable || false;
 
-            // Extract blocks
+        // Extract blocks
         if (options.order && typeof options.order === 'string' && options.order.trim()) {
-        const orderArray = options.order.match(/\d+/g);
-        if (orderArray) {
-            options.order = orderArray.map(x => parseInt(x));
+            const orderArray = options.order.match(/\d+/g);
+            if (orderArray) {
+                options.order = orderArray.map(x => parseInt(x));
+            }
         }
-    }
         var prettifyLanguage = {
             python: "prettyprint lang-py",
             java: "prettyprint lang-java",
@@ -188,112 +212,43 @@ export default class Parsons extends RunestoneBase {
             math: "", // No prettify for math
             natural: "" // No prettify for natural language
         }[options.language] || "";
-    
-    options.prettifyLanguage = prettifyLanguage;
-    options.locale = "en"; // Default since no eBookConfig in PIF mode
-    
-    // Set instance properties
-    this.noindent = options.noindent;
-    if (options.adaptive) {
-        this.initializeAdaptive();
-    }
-    
-    this.options = options;
-    }
 
-    
-    // Based on the data-fields in the original HTML, initialize options
-    initializeOptions() {
-        var options = {
-            pixelsPerIndent: 30,
-        };
-        // add maxdist and order if present
-        var maxdist = $(this.origElem).data("maxdist");
-        var order = $(this.origElem).data("order");
-        var noindent = $(this.origElem).data("noindent");
-        var adaptive = $(this.origElem).data("adaptive");
-        var numbered = $(this.origElem).data("numbered");
-        var grader = $(this.origElem).data("grader");
-        options["numbered"] = numbered;
-        options["grader"] = grader;
-        if (maxdist !== undefined) {
-            options["maxdist"] = maxdist;
-        }
-        if (order !== undefined) {
-            // convert order string to array of numbers
-            order = order.match(/\d+/g);
-            for (var i = 0; i < order.length; i++) {
-                order[i] = parseInt(order[i]);
-            }
-            options["order"] = order;
-        }
-        if (noindent == undefined) {
-            noindent = false;
-        }
-        options["noindent"] = noindent;
-        this.noindent = noindent;
-        if (adaptive == undefined) {
-            adaptive = false;
-        } else if (adaptive) {
+        options.prettifyLanguage = prettifyLanguage;
+        options.locale = "en"; // Default since no eBookConfig in PIF mode
+
+        // Set instance properties
+        this.noindent = options.noindent;
+        if (options.adaptive) {
             this.initializeAdaptive();
         }
-        options["adaptive"] = adaptive;
-        // add locale and language
-        var locale = eBookConfig.locale;
-        if (locale == undefined) {
-            locale = "en";
-        }
-        options["locale"] = locale;
-        var language = $(this.origElem).data("language");
-        if (language == undefined) {
-            language = eBookConfig.language;
-            if (language == undefined) {
-                language = "python";
-            }
-        }
-        options["language"] = language;
-        var prettifyLanguage = {
-            python: "prettyprint lang-py",
-            java: "prettyprint lang-java",
-            javascript: "prettyprint lang-js",
-            html: "prettyprint lang-html",
-            c: "prettyprint lang-c",
-            "c++": "prettyprint lang-cpp",
-            cpp: "prettyprint lang-cpp",
-            ruby: "prettyprint lang-rb",
-        }[language];
-        if (prettifyLanguage == undefined) {
-            prettifyLanguage = "";
-        }
-        options["prettifyLanguage"] = prettifyLanguage;
-        //runnable if the parent has a parsons-runnable attr
-        options["runnable"] = $(this.origElem).data("runnable");
+
         this.options = options;
     }
 
+
     initializeLinesFromPIF() {
         this.lines = [];
-        
+
         // Get blocks from PIF data - handle both direct and nested structure
         const pifBlocks = this.pifData?.blocks || this.pifData?.value?.blocks || [];
 
         if (!Array.isArray(pifBlocks) || pifBlocks.length === 0) {
-            console.warn('No valid blocks found in PIF data');
+            this.reportDebugFeedback("No valid blocks found in PIF data");
             return;
         }
-        
+
         var solution = [];
         var indents = [];
-        
+
         for (let i = 0; i < pifBlocks.length; i++) {
             const pifBlock = pifBlocks[i];
-            
+
             // Validate pifBlock structure
             if (!pifBlock || typeof pifBlock !== 'object') {
-                console.warn(`PIF block at index ${i} is invalid:`, pifBlock);
+                this.reportDebugFeedback(`PIF block at index ${i} is invalid`, pifBlock);
                 continue;
             }
-            
+
             // Determine if it's a distractor - handle empty strings and various formats
             const blockType = (pifBlock.type || "").trim();
             const blockDepends = (pifBlock.depends || "").trim();
@@ -301,23 +256,23 @@ export default class Parsons extends RunestoneBase {
             const isFixed =
                 blockType === "fixed" ||
                 (typeof pifBlock.tag === "string" && pifBlock.tag.trim() === "fixed");
-        
-            
+
+
             // Create ParsonsLine from PIF block with safe defaults
             const blockText = (pifBlock.text || "").toString().trim();
-            
+
             // Skip empty blocks
             if (!blockText) {
-                console.warn(`Skipping empty block at index ${i}:`, pifBlock);
+                this.reportDebugFeedback(`Skipping empty block at index ${i}`, pifBlock);
                 continue;
             }
-            
+
             const displayMath = Boolean(pifBlock.displaymath);
-            
-            //make togglesArray work with backend later
-            var togglesArray = [];
-            var line = new ParsonsLine(this, blockText, displayMath, togglesArray);
-            
+
+            const togglesArray = pifBlock.toggle_options;
+            const textArray = pifBlock.text_options;
+            var line = new ParsonsLine(this, blockText, displayMath, togglesArray, textArray);
+
             // Set properties - handle various indent formats
             const indentValue = pifBlock.indent;
             if (typeof indentValue === 'number') {
@@ -331,15 +286,16 @@ export default class Parsons extends RunestoneBase {
             } else {
                 line.indent = 0;
             }
+
             line.distractor = isDistractor;
-            line.distractHelpText = 
-            line.paired = Boolean(pifBlock.paired); // Respect paired flag if present
+            line.distractHelpText =
+                line.paired = Boolean(pifBlock.paired); // Respect paired flag if present
             line.groupWithNext = false; // Each PIF block is typically a separate draggable unit
             line.fixed = isFixed;
-            if (pifBlock.feedback && pifBlock.feedback.length !== 0){
+            if (pifBlock.feedback && pifBlock.feedback.length !== 0) {
                 line.distractHelptext = pifBlock.feedback;
             }
-            
+
             if (pifBlock.reusable) {
                 line.reusable = true;
                 this.hasReusable = true;
@@ -373,21 +329,21 @@ export default class Parsons extends RunestoneBase {
                     line.depends = [];
                 }
             }
-            
+
             // Add to solution if not distractor and not fixed
             if (!line.distractor && !line.fixed) {
                 solution.push(line);
             }
-            
+
             // Note: line is automatically added to this.lines by ParsonsLine constructor
             // No need to manually push it here
-            
+
             // Track indents for normalization
             if (indents.indexOf(line.indent) === -1) {
                 indents.push(line.indent);
             }
         }
-        
+
         // Normalize indents (same logic as original)
         indents = indents.sort((a, b) => a - b);
         for (let i = 0; i < this.lines.length; i++) {
@@ -398,10 +354,9 @@ export default class Parsons extends RunestoneBase {
         if (this.hasReusable && this.options.grader !== "exec") {
             throw new Error("Reusable blocks are only supported with execute grading.");
         }
-        
+
         this.solution = solution;
     }
-
 
     // Based on what is specified in the original HTML, create the HTML view
     initializeView() {
@@ -467,19 +422,22 @@ export default class Parsons extends RunestoneBase {
         var that = this;
         this.checkButton = document.createElement("button");
         $(this.checkButton).attr("class", "btn btn-success");
-        this.checkButton.textContent = ($.i18n && $.i18n("msg_parson_check_me") !== "msg_parson_check_me") 
+        this.checkButton.textContent = ($.i18n && $.i18n("msg_parson_check_me") !== "msg_parson_check_me")
             ? $.i18n("msg_parson_check_me") : "Check Me";
         this.checkButton.id = this.counterId + "-check";
         this.parsonsControlDiv.appendChild(this.checkButton);
         this.checkButton.type = "button";
         this.checkButton.addEventListener("click", function (event) {
             event.preventDefault();
-            
+            if (that.onCheck) {
+                that.onCheck();
+            }
+
             if (that.options.grader === "exec" || that.hasReusable) {
                 //TODO: Implement executable grading and uncomment the line below
-                var extractedCode = that.extractCode(); 
-                console.log(`EXTRACTED CODE = ${extractedCode}`)
-            
+                var extractedCode = that.extractCode();
+                console.log("EXTRACTED CODE =\n" + JSON.stringify(extractedCode, null, 2));
+
                 const errorMessage = "Executable grading not yet implemented.";
                 $('body').append(`
                     <div style="padding: 20px; margin: 20px; border: 1px solid #dc3545; border-radius: 5px; background-color: #f8d7da; color: #721c24;">
@@ -494,30 +452,40 @@ export default class Parsons extends RunestoneBase {
         });
         this.resetButton = document.createElement("button");
         $(this.resetButton).attr("class", "btn btn-default");
-        this.resetButton.textContent = ($.i18n && $.i18n("msg_parson_reset") !== "msg_parson_reset") 
+        this.resetButton.textContent = ($.i18n && $.i18n("msg_parson_reset") !== "msg_parson_reset")
             ? $.i18n("msg_parson_reset") : "Reset";
         this.resetButton.id = this.counterId + "-reset";
         this.resetButton.type = "button";
         this.parsonsControlDiv.appendChild(this.resetButton);
         this.resetButton.addEventListener("click", function (event) {
             event.preventDefault();
+            if (that.onReset) {
+                that.onReset();
+            }
             that.clearFeedback();
             $(that.checkButton).prop("disabled", false);
             that.resetView();
             that.checkCount = 0;
+            that.correct = null;
+            that.grade = undefined;
+            that.lastCheckedAnswerHash = null;
             that.logMove("reset");
             that.setLocalStorage();
+            that.emitStateChange();
         });
         if (this.options.adaptive) {
             this.helpButton = document.createElement("button");
             $(this.helpButton).attr("class", "btn btn-primary");
-            this.helpButton.textContent = ($.i18n && $.i18n("msg_parson_help") !== "msg_parson_help") 
+            this.helpButton.textContent = ($.i18n && $.i18n("msg_parson_help") !== "msg_parson_help")
                 ? $.i18n("msg_parson_help") : "Help Me";
             this.helpButton.id = this.counterId + "-help";
             this.helpButton.disabled = false; // bje
             this.parsonsControlDiv.appendChild(this.helpButton);
             this.helpButton.addEventListener("click", function (event) {
                 event.preventDefault();
+                if (that.onHelp) {
+                    that.onHelp();
+                }
                 that.helpMe();
             });
         }
@@ -541,157 +509,20 @@ export default class Parsons extends RunestoneBase {
         }
     }
 
-    // Initialize lines and solution properties
-    initializeLines(text) {
-        this.lines = [];
-        // Create the initial blocks
-        var textBlocks = text.split("---");
-        if (textBlocks.length === 1) {
-            // If there are no ---, then every line is its own block
-            textBlocks = text.split("\n");
-        }
-        var solution = [];
-        var indents = [];
-        for (var i = 0; i < textBlocks.length; i++) {
-            var textBlock = textBlocks[i];
-            // Figure out options based on the #option
-            // Remove the options from the code
-            // only options are #paired or #distractor
-            var options = {};
-            var distractIndex;
-            var distractHelptext = "";
-            var tagIndex;
-            var tag;
-            var dependsIndex;
-
-            var togglesArray = [];
-            // uncomment to test toggle functionality
-            // var togglesArray = [
-            //     {
-            //         pos: 5,
-            //         values: ["1","2","3"]
-            //     },
-            //     {
-            //         pos: 1,
-            //         values: ["true","false"]
-            //     }
-            // ];
-            var depends = [];
-            if (textBlock.includes("#paired:")) {
-                distractIndex = textBlock.indexOf("#paired:");
-                distractHelptext = textBlock
-                    .substring(distractIndex + 8, textBlock.length)
-                    .trim();
-                textBlock = textBlock.substring(0, distractIndex + 7);
-            } else if (textBlock.includes("#distractor:")) {
-                distractIndex = textBlock.indexOf("#distractor:");
-                distractHelptext = textBlock
-                    .substring(distractIndex + 12, textBlock.length)
-                    .trim();
-                textBlock = textBlock.substring(0, distractIndex + 11);
-            } else if (textBlock.includes("#tag:")) {
-                textBlock = textBlock.replace(/#tag:.*;.*;/, (s) =>
-                    s.replace(/\s+/g, "")
-                ); // remove whitespace in tag and depends list
-                tagIndex = textBlock.indexOf("#tag:");
-                tag = textBlock.substring(
-                    tagIndex + 5,
-                    textBlock.indexOf(";", tagIndex + 5)
-                );
-                if (tag == "") tag = "block-" + i;
-                dependsIndex = textBlock.indexOf("depends:");
-                let dependsString = textBlock.substring(
-                    dependsIndex + 9,
-                    textBlock.indexOf(";", dependsIndex + 9)
-                );
-                depends =
-                    dependsString.length > 0 ? dependsString.split(",") : [];
-            }
-            if (textBlock.includes('class="displaymath')) {
-                options["displaymath"] = true;
-            } else {
-                options["displaymath"] = false;
-            }
-            textBlock = textBlock.replace(
-                /\s*#(paired|distractor|reusable|tag:.*;.*;)\s*/g,
-                function (mystring, arg1) {
-                    options[arg1] = true;
-                    return "";
-                }
-            );
-            // Create lines
-            var lines = [];
-            if (!options["displaymath"]) {
-                var split = textBlock.split("\n");
-            } else {
-                var split = [textBlock];
-            }
-            for (var j = 0; j < split.length; j++) {
-                var code = split[j];
-                // discard blank rows
-                if (!/^\s*$/.test(code)) {
-                    var line = new ParsonsLine(
-                        this,
-                        code,
-                        options["displaymath"],
-                        togglesArray
-                    );
-                    lines.push(line);
-                    if (options["reusable"]) {
-                        line.reusable = true;
-                    }
-                    if (options["paired"]) {
-                        line.distractor = true;
-                        line.paired = true;
-                        line.distractHelptext = distractHelptext;
-                    } else if (options["distractor"]) {
-                        line.distractor = true;
-                        line.paired = false;
-                        line.distractHelptext = distractHelptext;
-                    } else {
-                        line.distractor = false;
-                        line.paired = false;
-                        if (this.options.grader === "dag") {
-                            line.tag = tag;
-                            line.depends = depends;
-                        }
-                        solution.push(line);
-                    }
-                    if ($.inArray(line.indent, indents) == -1) {
-                        indents.push(line.indent);
-                    }
-                }
-            }
-            if (lines.length > 0) {
-                // Add groupWithNext
-                for (j = 0; j < lines.length - 1; j++) {
-                    lines[j].groupWithNext = true;
-                }
-                lines[lines.length - 1].groupWithNext = false;
-            }
-        }
-        // Normalize the indents
-        indents = indents.sort(function (a, b) {
-            return a - b;
-        });
-        for (i = 0; i < this.lines.length; i++) {
-            line = this.lines[i];
-            line.indent = indents.indexOf(line.indent);
-        }
-        this.solution = solution;
-    }
-
     // Extracts code for execute grading
-    extractCode() { 
-        let code = ""; 
-        for (const block of this.answerBlocks()) { 
-            for (const line of block.lines) { 
-                for (let i = 0; i < line.indent; i++) { 
-                    code += "    "; 
-                } 
-                code += line.text + "\n"; 
-            } 
-        } 
+    extractCode() {
+        let code = "";
+        for (const block of this.answerBlocks()) {
+            for (const line of block.lines) {
+                for (let i = 0; i < line.indent; i++) {
+                    code += "    ";
+                }
+
+                //replace toggle button html content with inner content
+                line.text = line.text.replace(/<button\b[^>]*>(.*?)<\/button>/g, '$1');
+                code += line.text + "\n";
+            }
+        }
         let wrapper = this.pifData?.wrapper
         if (wrapper) {
             code = wrapper.replace("___", code);
@@ -789,11 +620,16 @@ export default class Parsons extends RunestoneBase {
         // Determine how much indent should be possible in the answer area
         var indent = 0;
         if (!this.noindent) {
-            if (this.options.language == "natural") {
-                indent = this.solutionIndent();
-            } else {
-                indent = Math.max(0, this.solutionIndent());
-            }
+            indent = this.solutionIndent();
+            // if (this.options.language == "natural") {
+            //     indent = this.solutionIndent();
+            // } else {
+            //     indent = Math.max(0, this.solutionIndent());
+            // }
+            //
+            // if(this.options.grader === "exec") {
+            //     indent = this.blocks.length - 1;
+            // }
         }
         this.indent = indent;
         // For rendering, place in an onscreen position
@@ -834,19 +670,22 @@ export default class Parsons extends RunestoneBase {
                 this.options.language == "natural" ||
                 this.options.language == "math"
             ) {
-                if (typeof runestoneMathReady !== "undefined") {
-                    await runestoneMathReady.then(
-                        async () => await self.queueMathJax(item[0])
-                    );
-                } else {
-                    // this is for older rst builds not ptx
-                    if (typeof MathJax !== "undefined" && typeof MathJax.startup !== "undefined") {
-                        await self.queueMathJax(item[0]);
+                try {
+                    if (typeof runestoneMathReady !== "undefined") {
+                        await runestoneMathReady.then(
+                            async () => await self.queueMathJax(item[0])
+                        );
+                    } else {
+                        // this is for older rst builds not ptx
+                        if (typeof MathJax !== "undefined" && typeof MathJax.startup !== "undefined") {
+                            await self.queueMathJax(item[0]);
+                        }
                     }
+                } catch (e) {
+                    self.reportDebugFeedback("MathJax failed to typeset a Parsons block; laying it out untypeset.", { block: item[0], error: e });
                 }
             }
             areaWidth = Math.max(areaWidth, item.outerWidth(true));
-            item.width(areaWidth - 22);
             var addition = 3.8;
             let outerH = item.outerHeight(true);
             if (outerH != 38) {
@@ -856,6 +695,16 @@ export default class Parsons extends RunestoneBase {
         }.bind(this);
         for (i = 0; i < blocks.length; i++) {
             await maxFunction($(blocks[i].view));
+        }
+        // Apply the final, true max width to every block only after it has
+        // been determined across ALL blocks. Blocks are shuffled into a new
+        // order on every initializeAreas() call (e.g. after Reset), so
+        // setting each block's width incrementally as we discovered the
+        // running max (as before) made the sizing depend on shuffle order -
+        // whichever blocks happened to come before the widest block in that
+        // particular shuffle ended up narrower than the rest.
+        for (i = 0; i < blocks.length; i++) {
+            $(blocks[i].view).width(areaWidth - 22);
         }
         // sometimes we have a problem with hidden elements not getting the right height
         // just make sure that we have a reasonable height. There must be a better way to
@@ -967,14 +816,29 @@ export default class Parsons extends RunestoneBase {
                     groupDiv.className = "grouped-blocks-overlay";
                     groupDiv.setAttribute("data-group-tag", gTag);
 
+                    // "or" only makes sense when the group is actually a set of
+                    // interchangeable distractor alternatives (pick one). A
+                    // group with no distractors is just blocks that share an
+                    // order/tag for other reasons, so labeling it "or" would
+                    // be misleading. line.distractor is derived from each
+                    // PIF block's type (type === "distractor", or the
+                    // depends === "-1" shorthand) in initializeLinesFromPIF().
+                    var groupHasDistractor = groupBlocks.some(function (b) {
+                        return b.lines.some(function (l) {
+                            return l.distractor;
+                        });
+                    });
+
                     // Create the "or" indicator
                     var orIndicator = document.createElement("div");
                     orIndicator.className = "or-indicator";
 
-                    var orText = document.createElement("span");
-                    orText.className = "or-text";
-                    orText.textContent = "or";
-                    orIndicator.appendChild(orText);
+                    if (groupHasDistractor) {
+                        var orText = document.createElement("span");
+                        orText.className = "or-text";
+                        orText.textContent = "or";
+                        orIndicator.appendChild(orText);
+                    }
 
                     var curlyBrace = document.createElement("div");
                     curlyBrace.className = "curly-brace";
@@ -1010,8 +874,11 @@ export default class Parsons extends RunestoneBase {
             this.blocks[i].initializeInteractivity();
         }
         for (var i = 0; i < this.lines.length; i++) {
-            for(const toggle of this.lines[i].toggles){
+            for (const toggle of this.lines[i].toggles) {
                 toggle.attachListeners();
+            }
+            for (const textInput of this.lines[i].textInputs) {
+                textInput.attachListeners();
             }
         }
         this.initializeTabIndex();
@@ -1021,7 +888,18 @@ export default class Parsons extends RunestoneBase {
             this.options.language == "math"
         ) {
             if (typeof MathJax !== "undefined" && typeof MathJax.startup !== "undefined") {
-                self.queueMathJax(self.outerDiv);
+                // Only typeset the question text here, not the whole outerDiv.
+                // outerDiv also contains every block's view, and those are
+                // already typeset individually (and awaited) in the
+                // initializeAreas() measurement loop. Passing outerDiv here
+                // fired a SECOND, unawaited, concurrent MathJax.typesetPromise
+                // call reprocessing the very same block elements the other
+                // loop is (or just finished) processing - re-typesetting
+                // already-typeset math is a known way to make MathJax throw
+                // internally.
+                if (self.question) {
+                    self.queueMathJax(self.question);
+                }
             }
         }
     }
@@ -1091,7 +969,7 @@ export default class Parsons extends RunestoneBase {
         ) {
             await this.initializeAreas(this.blocksFromSource(), this.fixedBlocks(), options);
         }
-         else {
+        else {
             this.initializeAreas(
                 this.blocksFromHash(sourceHash),
                 this.fixedBlocks().concat(this.blocksFromHash(answerHash)),
@@ -1100,6 +978,9 @@ export default class Parsons extends RunestoneBase {
             this.grade = this.grader.grade();
             if (this.grade == "correct") {
                 this.correct = true;
+                this.hasSolved = true;
+                this.lastCheckedAnswerHash = answerHash;
+                $(this.checkButton).prop("disabled", true);
             } else if (this.answerLines().length == 0) {
                 this.correct = null;
             } else {
@@ -1165,6 +1046,25 @@ export default class Parsons extends RunestoneBase {
             toStore = data;
         }
         localStorage.setItem(this.storageId, JSON.stringify(toStore));
+    }
+
+    // A plain, serializable snapshot of the problem's current state.
+    currentState() {
+        return {
+            source: this.sourceHash(),
+            answer: this.answerHash(),
+            correct: this.correct === undefined ? null : this.correct,
+            checkCount: this.checkCount,
+            timestamp: new Date(),
+        };
+    }
+
+    // Hand the current state to the host-supplied callback, if any, so the
+    // host can persist it however it likes.
+    emitStateChange() {
+        if (this.onStateChange) {
+            this.onStateChange(this.currentState());
+        }
     }
 
     /* =====================================================================
@@ -1695,16 +1595,16 @@ export default class Parsons extends RunestoneBase {
             if (lineIndex >= 0 && lineIndex < this.lines.length && this.lines[lineIndex]) {
                 lines.push(this.lines[lineIndex]);
             } else {
-                console.warn(`Invalid line index ${lineIndex} in hash ${hash}. Available lines: ${this.lines.length}`);
+                this.reportDebugFeedback(`Invalid line index ${lineIndex} in hash ${hash}. Available lines: ${this.lines.length}`);
             }
         }
-        
+
         // Don't create a block if no valid lines were found
         if (lines.length === 0) {
-            console.warn(`No valid lines found for hash ${hash}`);
+            this.reportDebugFeedback(`No valid lines found for hash ${hash}`);
             return null;
         }
-        
+
         var block = new ParsonsBlock(this, lines);
         if (this.noindent) {
             block.indent = 0;
@@ -1835,6 +1735,7 @@ export default class Parsons extends RunestoneBase {
                 answerLines.push(block.lines[j]);
             }
         }
+        console.log(answerLines);
         return answerLines;
     }
 
@@ -1849,12 +1750,18 @@ export default class Parsons extends RunestoneBase {
 
     // Return the maximum indent for the solution
     solutionIndent() {
-        var indent = 0;
-        for (var i = 0; i < this.blocks.length; i++) {
-            var block = this.blocks[i];
-            indent = Math.max(indent, block.solutionIndent());
+        const maxIndents = this.pifData.options.indent.max_indents;
+        const active = this.pifData.options.indent.active;
+
+        if (!active) {
+            return 0;
         }
-        return indent;
+
+        if (maxIndents) {
+            return maxIndents
+        } else {
+            return 3;
+        }
     }
 
     /* =====================================================================
@@ -1863,16 +1770,15 @@ export default class Parsons extends RunestoneBase {
 
     // The "Check Me" button was pressed.
     checkCurrentAnswer() {
-        if (!this.hasSolved) {
+        if (!$(this.checkButton).prop("disabled")) {
             this.checkCount++;
             this.clearFeedback();
             if (this.adaptiveId == undefined) {
                 this.adaptiveId = this.storageId;
             }
-            // TODO - rendering feedback is buried in the grader.grade method.
-            // to disable feedback set this.grader.showfeedback boolean
-            this.grader.showfeedback = false;
             this.grade = this.grader.grade();
+            var answerHash = this.answerHash();
+            this.lastCheckedAnswerHash = answerHash;
             if (this.grade == "correct") {
                 this.hasSolved = true;
                 this.correct = true;
@@ -1883,18 +1789,20 @@ export default class Parsons extends RunestoneBase {
                     this.adaptiveId + "recentAttempts",
                     this.recentAttempts
                 );
+            } else {
+                this.correct = false;
             }
             localStorage.setItem(
                 this.adaptiveId + this.divid + "Count",
                 this.checkCount
             );
             this.setLocalStorage();
+            this.emitStateChange();
 
             // if not solved and not too short then check if should provide help
             if (!this.hasSolved && this.grade !== "incorrectTooShort") {
                 if (this.canHelp) {
                     // only count the attempt if the answer is different (to prevent gaming)
-                    var answerHash = this.answerHash();
                     if (this.lastAnswerHash !== answerHash) {
                         this.numDistinct++;
                         this.lastAnswerHash = answerHash;
@@ -1905,14 +1813,14 @@ export default class Parsons extends RunestoneBase {
                     } // end if
                 } // end if can help
             } // end if not solved
-        } // end outer if not solved
 
-        // if now or previous was correct, display runnable
-        if (this.hasSolved && this.options.runnable) {
-            if (!this.runnableDiv)
-                this.generateRunableVersion();
-            else //reveal "reset" runnable
-                this.runnableDiv.style.display = null;
+            // if now or previous was correct, display runnable
+            if (this.hasSolved && this.options.runnable) {
+                if (!this.runnableDiv)
+                    this.generateRunableVersion();
+                else //reveal "reset" runnable
+                    this.runnableDiv.style.display = null;
+            }
         }
     }
 
@@ -1939,64 +1847,94 @@ export default class Parsons extends RunestoneBase {
         window.runestoneComponents.renderOneComponent(this.runnableDiv);
     }
 
+    // Called after checkCurrentAnswer(). Computes the feedback once, always
+    // hands it to onFeedback, then — unless showFeedback is off — renders it
+    // with the library's own UI. See buildFeedback() for the data shape.
+    // (Debug feedback — structural/parsing problems — is a separate thing;
+    // see reportDebugFeedback().)
     renderFeedback() {
-        this.grader.showfeedback = true;
         this.grade = this.grader.graderState;
-        var feedbackArea;
-        var answerArea = $(this.answerArea);
 
-        if (this.showfeedback === true) {
-            feedbackArea = $(this.messageDiv);
-        } else {
-            feedbackArea = $("#doesnotexist");
+        var feedback = this.buildFeedback();
+
+        // The host always learns the result — showFeedback only controls
+        // whether *we* also render it below.
+        if (this.onFeedback) {
+            this.onFeedback(feedback);
         }
+
+        // Precedence for whether we paint our own UI: default true ->
+        // opts.showFeedback -> PIF-authored grader.show_feedback ->
+        // grader.showfeedback, which is the most specific and wins if set
+        // directly. It starts out equal to the resolved opts/PIF value (set
+        // at construction) but a host can override it afterward without
+        // touching either original source.
+        if (this.grader.showfeedback === false) {
+            return;
+        }
+
+        this.paintFeedback(feedback);
+    }
+
+    // A plain, serializable snapshot of the grading result: the message
+    // text the built-in UI would show, and which blocks (by their view id,
+    // so a host can look them up however it renders its own UI) are
+    // implicated. No DOM access here — paintFeedback() below is the only
+    // thing that turns this into visible markup, so the two can never drift
+    // apart from what's reported to the host via onFeedback.
+    //
+    // Shape:
+    //   {
+    //     grade: "correct" | "incorrectTooShort" | "incorrectIndent" | "incorrectMoveBlocks",
+    //     correct: boolean,
+    //     checkCount: number,
+    //     message: string,               // same text the built-in UI shows
+    //     blocks: {
+    //       indentLeft: [blockViewId],    // needs LESS indentation
+    //       indentRight: [blockViewId],   // needs MORE indentation
+    //       incorrectPosition: [blockViewId],
+    //     },
+    //     distractorFeedback: [string],   // per-distractor hint text, if any
+    //   }
+    buildFeedback() {
+        var feedback = {
+            grade: this.grade,
+            correct: this.grade === "correct",
+            checkCount: this.checkCount,
+            message: "",
+            blocks: { indentLeft: [], indentRight: [], incorrectPosition: [] },
+            distractorFeedback: [],
+        };
 
         if (this.grade === "correct") {
-            answerArea.addClass("correct");
-            feedbackArea.fadeIn(100);
-            feedbackArea.attr("class", "alert alert-info");
-            let message = this.checkCount > 1
+            feedback.message = this.checkCount > 1
                 ? $.i18n("msg_parson_correct", this.checkCount)
                 : $.i18n("msg_parson_correct_first_try");
-            if (this.options.runnable)
-                message += " " + $.i18n("msg_parson_correct_runnable");
-            feedbackArea.html(message);
-        }
-
-        if (this.grade === "incorrectTooShort") {
-            // too little code
-            answerArea.addClass("incorrect");
-            feedbackArea.fadeIn(500);
-            feedbackArea.attr("class", "alert alert-danger");
-            feedbackArea.html($.i18n("msg_parson_too_short"));
-        }
-
-        if (this.grade === "incorrectIndent") {
-            var incorrectBlocks = [];
+            if (this.options.runnable) {
+                feedback.message += " " + $.i18n("msg_parson_correct_runnable");
+            }
+        } else if (this.grade === "incorrectTooShort") {
+            feedback.message = $.i18n("msg_parson_too_short");
+        } else if (this.grade === "incorrectIndent") {
+            var seenIndentBlocks = [];
             for (let i = 0; i < this.grader.indentLeft.length; i++) {
-                block = this.grader.indentLeft[i].block();
-                if (incorrectBlocks.indexOf(block) == -1) {
-                    incorrectBlocks.push(block);
-                    $(block.view).addClass("indentLeft");
+                var leftBlock = this.grader.indentLeft[i].block();
+                if (seenIndentBlocks.indexOf(leftBlock) === -1) {
+                    seenIndentBlocks.push(leftBlock);
+                    feedback.blocks.indentLeft.push(leftBlock.view.id);
                 }
             }
             for (let i = 0; i < this.grader.indentRight.length; i++) {
-                block = this.grader.indentRight[i].block();
-                if (incorrectBlocks.indexOf(block) == -1) {
-                    incorrectBlocks.push(block);
-                    $(block.view).addClass("indentRight");
+                var rightBlock = this.grader.indentRight[i].block();
+                if (seenIndentBlocks.indexOf(rightBlock) === -1) {
+                    seenIndentBlocks.push(rightBlock);
+                    feedback.blocks.indentRight.push(rightBlock.view.id);
                 }
             }
-            feedbackArea.fadeIn(500);
-            feedbackArea.attr("class", "alert alert-danger");
-            if (incorrectBlocks.length == 1) {
-                feedbackArea.html($.i18n("msg_parson_wrong_indent"));
-            } else {
-                feedbackArea.html($.i18n("msg_parson_wrong_indents"));
-            }
-        }
-
-        if (this.grade === "incorrectMoveBlocks") {
+            feedback.message = seenIndentBlocks.length === 1
+                ? $.i18n("msg_parson_wrong_indent")
+                : $.i18n("msg_parson_wrong_indents");
+        } else if (this.grade === "incorrectMoveBlocks") {
             var answerBlocks = this.answerBlocks();
             var inSolution = [];
             var inSolutionIndexes = [];
@@ -2022,31 +1960,122 @@ export default class Parsons extends RunestoneBase {
             for (let i = 0; i < lisIndexes.length; i++) {
                 notInSolution.push(inSolution[lisIndexes[i]]);
             }
-            answerArea.addClass("incorrect");
-            feedbackArea.fadeIn(500);
-            feedbackArea.attr("class", "alert alert-danger");
-            if (this.showfeedback === true) {
-                var distractorFeedbacks = [];
-                for (let i = 0; i < notInSolution.length; i++) {
-                    $(notInSolution[i].view).addClass("incorrectPosition");
-                    // Check if it's a distractor with feedback
-                    if (notInSolution[i].isDistractor() && notInSolution[i].lines[0].distractHelptext) {
-                        distractorFeedbacks.push(notInSolution[i].lines[0].distractHelptext);
-                    }
-                }
-                // Display distractor-specific feedback if available
-                if (distractorFeedbacks.length > 0) {
-                    var feedbackHtml = $.i18n("msg_parson_wrong_order") + "<br><br><strong>Feedback:</strong><ul>";
-                    for (let i = 0; i < distractorFeedbacks.length; i++) {
-                        feedbackHtml += "<li>" + distractorFeedbacks[i] + "</li>";
-                    }
-                    feedbackHtml += "</ul>";
-                    feedbackArea.html(feedbackHtml);
-                    return;
+            for (let i = 0; i < notInSolution.length; i++) {
+                feedback.blocks.incorrectPosition.push(notInSolution[i].view.id);
+                if (notInSolution[i].isDistractor() && notInSolution[i].lines[0].distractHelptext) {
+                    feedback.distractorFeedback.push(notInSolution[i].lines[0].distractHelptext);
                 }
             }
-            feedbackArea.html($.i18n("msg_parson_wrong_order"));
+            feedback.message = $.i18n("msg_parson_wrong_order");
         }
+
+        return feedback;
+    }
+
+    // Renders the built-in feedback UI (message box + block highlighting)
+    // from an already-computed feedback object. Only reached when
+    // showFeedback isn't explicitly disabled. Block-level highlighting
+    // (addClass calls below) always runs; only the text message box is
+    // additionally gated by showFeedbackText, since it's a separate,
+    // finer-grained toggle from the showFeedback/grader.showfeedback
+    // master switch that got us into this method at all.
+    paintFeedback(feedback) {
+        var feedbackArea = $(this.messageDiv);
+        var answerArea = $(this.answerArea);
+        var showText = this.showFeedbackText !== false;
+
+        var paintMessage = function (alertClass, fadeMs, html) {
+            if (!showText) return;
+            feedbackArea.fadeIn(fadeMs);
+            feedbackArea.attr("class", alertClass);
+            feedbackArea.html(html);
+        };
+
+        if (feedback.grade === "correct") {
+            answerArea.addClass("correct");
+            paintMessage("alert alert-info", 100, feedback.message);
+            return;
+        }
+
+        if (feedback.grade === "incorrectTooShort") {
+            answerArea.addClass("incorrect");
+            paintMessage("alert alert-danger", 500, feedback.message);
+            return;
+        }
+
+        if (feedback.grade === "incorrectIndent") {
+            for (let i = 0; i < feedback.blocks.indentLeft.length; i++) {
+                var leftBlock = this.getBlockById(feedback.blocks.indentLeft[i]);
+                if (leftBlock) $(leftBlock.view).addClass("indentLeft");
+            }
+            for (let i = 0; i < feedback.blocks.indentRight.length; i++) {
+                var rightBlock = this.getBlockById(feedback.blocks.indentRight[i]);
+                if (rightBlock) $(rightBlock.view).addClass("indentRight");
+            }
+            paintMessage("alert alert-danger", 500, feedback.message);
+            return;
+        }
+
+        if (feedback.grade === "incorrectMoveBlocks") {
+            answerArea.addClass("incorrect");
+            for (let i = 0; i < feedback.blocks.incorrectPosition.length; i++) {
+                var block = this.getBlockById(feedback.blocks.incorrectPosition[i]);
+                if (block) $(block.view).addClass("incorrectPosition");
+            }
+            if (feedback.distractorFeedback.length > 0) {
+                var feedbackHtml = feedback.message + "<br><br><strong>Feedback:</strong><ul>";
+                for (let i = 0; i < feedback.distractorFeedback.length; i++) {
+                    feedbackHtml += "<li>" + feedback.distractorFeedback[i] + "</li>";
+                }
+                feedbackHtml += "</ul>";
+                paintMessage("alert alert-danger", 500, feedbackHtml);
+                return;
+            }
+            paintMessage("alert alert-danger", 500, feedback.message);
+        }
+    }
+
+    // Reports a structural/parsing problem — missing or invalid PIF data, a
+    // malformed block, a saved-state hash that no longer matches the problem
+    // definition, MathJax failing to typeset, etc. Distinct from grading
+    // feedback above. Always logs to the console and, if onDebugFeedback is
+    // provided, always calls it — debugFeedback only controls whether we
+    // *also* show a visible on-screen warning ourselves.
+    reportDebugFeedback(message, details) {
+        console.warn(message, details !== undefined ? details : "");
+        var info = { message: message, details: details, timestamp: new Date() };
+        if (this.onDebugFeedback) {
+            this.onDebugFeedback(info);
+        }
+        if (this.debugFeedback) {
+            this.paintDebugFeedback(info);
+        }
+    }
+
+    // Renders a small on-screen warning box for a debug-feedback entry.
+    // Only reached when debugFeedback is on. Appends rather than replaces,
+    // since more than one such problem can surface over a problem's life.
+    paintDebugFeedback(info) {
+        if (!this.debugFeedbackDiv) {
+            this.debugFeedbackDiv = document.createElement("div");
+            this.debugFeedbackDiv.className = "parsons-debug-feedback";
+            $(this.debugFeedbackDiv).css({
+                "background-color": "#f8d7da",
+                color: "#721c24",
+                border: "1px solid #dc3545",
+                "border-radius": "5px",
+                padding: "10px",
+                margin: "10px 0",
+                "font-family": "monospace",
+                "font-size": "0.85em",
+            });
+            if (this.containerDiv && this.containerDiv[0]) {
+                this.containerDiv[0].prepend(this.debugFeedbackDiv);
+            }
+        }
+        var line = document.createElement("div");
+        line.textContent = info.message;
+        this.debugFeedbackDiv.appendChild(line);
     }
 
     /* =====================================================================
@@ -2103,7 +2132,7 @@ export default class Parsons extends RunestoneBase {
 
     // Return a boolean of whether the user must deal with indentation
     usesIndentation() {
-        if (this.noindent || this.solutionIndent() == 0) {
+        if (this.noindent || this.solutionIndent() == 0 || !(this.pifData.options.indent.active)) {
             // was $(this.answerArea).hasClass("answer") - bje changed
             return false;
         } else {
@@ -3102,7 +3131,7 @@ export default class Parsons extends RunestoneBase {
                         $(groupDiv).show();
 
                         // Sort by their current position (top value)
-                        matchingBlocks.sort(function(a, b) {
+                        matchingBlocks.sort(function (a, b) {
                             return parseInt($(a.view).css("top")) - parseInt($(b.view).css("top"));
                         });
 
@@ -3165,6 +3194,7 @@ export default class Parsons extends RunestoneBase {
                     this.answerArea.getBoundingClientRect().top -
                     window.pageYOffset;
                 this.moving.indent = movingIndent;
+
                 var inDropZone = false;
                 var currentDropZoneIndex = -1;
                 for (i = 0; i < blocks.length; i++) {
@@ -3367,6 +3397,12 @@ export default class Parsons extends RunestoneBase {
         }
         state = newState;
         this.state = state;
+
+        if ($(this.checkButton).prop("disabled") &&
+            this.answerHash() !== this.lastCheckedAnswerHash) {
+            $(this.checkButton).prop("disabled", false);
+            this.clearFeedback();
+        }
     }
 
     addBlockLabels(blocks) {
@@ -3496,6 +3532,13 @@ export default class Parsons extends RunestoneBase {
         }
         this.groupedBlocksMap = {};
         $(this.sourceArea).attr("style", "");
+        // initializeAreas()'s measurement loop needs the source area to have
+        // a sane max width to measure blocks against (see the matching
+        // assignment + comment in the constructor) - without it, the
+        // now-unconstrained container collapses to a sliver, text wraps far
+        // more than it should, and the inflated heights get baked into both
+        // regions' final size.
+        this.sourceArea.style.width = "425px"; // The max it will be resized later.
         $(this.answerArea).removeClass();
         $(this.answerArea).attr("style", "");
         // Remove existing drop zones
@@ -3545,7 +3588,7 @@ $(document).ready(function () {
 
     $("[data-component=parsons]").each(function (index) {
         try {
-            new Parsons({orig: $(this), useRunestoneServices: false})
+            new Parsons({ orig: $(this), useRunestoneServices: false })
         } catch (e) {
 
         }

@@ -1,5 +1,6 @@
 const fs = require('fs');
 const https = require('https');
+const http = require('http');
 const path = require('path');
 const FormData = require('form-data');
 const { logEvent } = require('./logger');
@@ -21,15 +22,18 @@ async function parsePIF(source, filename) {
   );
   formBody.append('is_pif', 'true');
 
+  const isDevEnv = process.env.NODE_ENV === 'development';
   const parseCallOptions = {
     method: 'POST',
-    host: 'endeavour.cs.vt.edu',
-    path: '/peml-live/api/parse',
+    host: isDevEnv ? process.env.PARSE_HOST : 'endeavour.cs.vt.edu',
+    port: isDevEnv ? process.env.PARSE_PORT : undefined,
+    path: isDevEnv? process.env.PARSE_PATH : '/peml-live/api/parse',
     headers: formBody.getHeaders(),
   };
 
   return new Promise((resolve, reject) => {
-    const req = https.request(parseCallOptions, (res) => {
+    const httpx = isDevEnv ? http : https;
+    const req = httpx.request(parseCallOptions, (res) => {
       let responseBody = '';
 
       res.setEncoding('utf-8');
