@@ -485,6 +485,9 @@ export default class ParsonsBlock {
                     if (block !== this) newBlocks.push(block);
                 }
                 this.problem.blocks = newBlocks;
+                // A duplicate reusable block was dragged back out; shrink the
+                // regions back down (never below their minimum) to match.
+                this.problem.resizeAreasForBlockCount();
             }
         }
         // Creates a cloned block in the answer area and returns the original back to the source
@@ -500,6 +503,9 @@ export default class ParsonsBlock {
                 }
             }
             let cloned = this.cloneBlockForReusable();
+            // Same measured height as the block it was cloned from, so the
+            // regions can grow to fit it without re-measuring/re-typesetting.
+            cloned.heightContribution = this.heightContribution;
             if (beforeBlock) {
                 this.problem.answerArea.insertBefore(cloned.view, beforeBlock);
             } else {
@@ -508,6 +514,9 @@ export default class ParsonsBlock {
             this.problem.blocks.push(cloned);
             cloned.initializeInteractivity();
             this.problem.sourceArea.appendChild(this.view);
+            // A duplicate now exists beyond the one instance-per-block the
+            // regions were originally sized for; grow both to fit it.
+            this.problem.resizeAreasForBlockCount();
         }
         delete this.problem.moving;
         delete this.problem.movingX;

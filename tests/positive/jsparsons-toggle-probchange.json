@@ -1,0 +1,60 @@
+{
+  "value": {
+    "question_text": "<p>The constructed code should print the minimum of variables a and b.</p>\n",
+    "options": {
+      "grader": {
+        "type": "exec",
+        "show_feedback": true
+      },
+      "indent": {
+        "active": true,
+        "mode": "prescribed",
+        "max_indents": 3
+      },
+      "adaptive": true,
+      "numbered": false,
+      "language": "python"
+    },
+    "blocks": [
+      {
+        "text": "if \\\\a\\b\\c\\\\ \\\\<\\>\\>=\\\\ b",
+        "type": "",
+        "tag": "one1",
+        "depends": "",
+        "indent": 0,
+        "displaymath": false,
+        "feedback": ""
+      },
+      {
+        "text": "print(a)",
+        "type": "",
+        "tag": "two",
+        "depends": "one1",
+        "indent": 0,
+        "displaymath": false,
+        "feedback": ""
+      },
+      {
+        "text": "else",
+        "type": "",
+        "tag": "three",
+        "depends": "two",
+        "indent": 0,
+        "displaymath": false,
+        "feedback": ""
+      },
+      {
+        "text": "print(b)",
+        "type": "",
+        "tag": "four",
+        "depends": "three",
+        "indent": 0,
+        "displaymath": false,
+        "feedback": ""
+      }
+    ]
+  },
+  "diags": [
+
+  ]
+}

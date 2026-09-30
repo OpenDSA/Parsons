@@ -1,0 +1,53 @@
+{
+  "value": {
+    "question_text": "<p>Construct code by reordering the lines.</p>\n",
+    "options": {
+      "grader": {
+        "type": "exec",
+        "show_feedback": true
+      },
+      "indent": {
+        "active": null,
+        "mode": "",
+        "max_indents": 3
+      },
+      "adaptive": true,
+      "numbered": false,
+      "language": "python"
+    },
+    "blocks": [
+      {
+        "text": "for (int i=0;i<3;i++) {",
+        "type": "",
+        "tag": "fixed",
+        "depends": "",
+        "indent": "",
+        "displaymath": false,
+        "feedback": "",
+        "code": "for i in range(3):"
+      },
+      {
+        "text": "System.out.print(\"I \");",
+        "type": "",
+        "tag": "one",
+        "depends": "fixed",
+        "indent": "",
+        "displaymath": false,
+        "feedback": "",
+        "code": "print('I ', end='')"
+      },
+      {
+        "text": "}",
+        "type": "",
+        "tag": "fixed",
+        "depends": "one",
+        "indent": "",
+        "displaymath": false,
+        "feedback": ""
+      }
+    ]
+  },
+  "diags": [
+
+  ]
+}

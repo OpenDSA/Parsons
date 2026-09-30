@@ -1,7 +1,7 @@
 const path = require('path');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
-module.exports = {
+module.exports = (env = {}) => ({
   entry: './src/parsons.js',
   output: {
     path: path.resolve(__dirname, 'dist'),
@@ -11,9 +11,21 @@ module.exports = {
       type: 'umd',
       export: 'default'
     },
-    globalObject: 'globalThis'
+    globalObject: 'this'
   },
-  mode: 'development', // or 'production'
+  mode: env.production ? 'production' : 'development',
+  // Externalize jQuery when building for Rails (host app provides it).
+  // Pass --env standalone to include jQuery in the bundle for testing.
+  ...(!env.standalone && {
+    externals: {
+      jquery: {
+        commonjs: 'jquery',
+        commonjs2: 'jquery',
+        amd: 'jquery',
+        root: '$'
+      }
+    }
+  }),
   module: {
     rules: [
       {
@@ -34,14 +46,14 @@ module.exports = {
         test: /\.svg$/i,
         type: 'asset/resource',
         generator: {
-          filename: '[name].[hash][ext]'
+          filename: '[name][ext]'
         }
       }
     ],
   },
   plugins: [
     new MiniCssExtractPlugin({
-      filename: '[name].[contenthash].css',
+      filename: 'parsons.css',
     }),
   ],
-};
+});

@@ -1,0 +1,75 @@
+
+{
+  "value": {
+    "question_text": "<p>Construct code by reordering and indenting the lines.</p>\n",
+    "options": {
+      "grader": {
+        "type": "exec",
+        "show_feedback": true
+      },
+      "indent": {
+        "active": true,
+        "mode": "prescribed",
+        "max_indents": 3
+      },
+      "adaptive": true,
+      "numbered": false,
+      "language": "python"
+    },
+    "blocks": [
+      {
+        "text": "for (int i=0;i<3;i++) {",
+        "code": "for i in range(3):",
+        "type": "",
+        "tag": "one",
+        "depends": "",
+        "indent": 0,
+        "displaymath": false,
+        "feedback": ""
+      },
+      {
+        "text": "System.out.print(\"I \");",
+        "code": "print('I ', end='')",
+        "type": "",
+        "tag": "two",
+        "depends": "one",
+        "indent": 1,
+        "displaymath": false,
+        "feedback": ""
+      },
+      {
+        "text": "System.out.print(\"am \");",
+        "code": "print('am ', end='')",
+        "type": "",
+        "tag": "three",
+        "depends": "two",
+        "indent": 1,
+        "displaymath": false,
+        "feedback": ""
+      },
+      {
+        "text": "System.out.print(\"a Java program \");",
+        "code": "print('a Java program ', end='')",
+        "type": "",
+        "tag": "four",
+        "depends": "three",
+        "indent": 1,
+        "displaymath": false,
+        "feedback": ""
+      },
+      {
+        "text": "}",
+        "code": "}",
+        "type": "",
+        "tag": "five",
+        "depends": "four",
+        "indent": 0,
+        "displaymath": false,
+        "feedback": ""
+      }
+    ]
+  },
+  "diags": [
+
+  ]
+}
