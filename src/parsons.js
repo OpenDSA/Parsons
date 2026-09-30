@@ -253,8 +253,16 @@ export default class Parsons extends RunestoneBase {
                 line.indent = 0;
             }
 
+            // Pseudocode blocks: the PIF block may carry a separate "code" field
+            // holding the code to execute, distinct from the displayed "text"
+            // (e.g. Java-looking display text backed by Python execution code).
+            const blockCode = (pifBlock.code || "").toString().trim();
+            if (blockCode) {
+                line.code = blockCode;
+            }
+
             line.distractor = isDistractor;
-            line.distractHelpText = 
+            line.distractHelpText =
             line.paired = Boolean(pifBlock.paired); // Respect paired flag if present
             line.groupWithNext = false; // Each PIF block is typically a separate draggable unit
             line.fixed = isFixed;
@@ -467,14 +475,18 @@ export default class Parsons extends RunestoneBase {
         let code = ""; 
         for (const block of this.answerBlocks()) { 
             for (const line of block.lines) { 
-                for (let i = 0; i < line.indent; i++) { 
-                    code += "    "; 
-                } 
+                for (let i = 0; i < line.indent; i++) {
+                    code += "    ";
+                }
+
+                // Pseudocode blocks carry a separate underlying "code" to execute,
+                // distinct from the "text" shown to the student; prefer it when present.
+                let lineCode = line.code !== undefined ? line.code : line.text;
 
                 //replace toggle button html content with inner content
-                line.text = line.text.replace(/<button\b[^>]*>(.*?)<\/button>/g, '$1');
-                code += line.text + "\n"; 
-            } 
+                lineCode = lineCode.replace(/<button\b[^>]*>(.*?)<\/button>/g, '$1');
+                code += lineCode + "\n";
+            }
         } 
         let wrapper = this.pifData?.wrapper
         if (wrapper) {

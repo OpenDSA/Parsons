@@ -1,3 +1,4 @@
+
 {
   "value": {
     "question_text": "<p>Construct code by reordering and indenting the lines.</p>\n",
@@ -18,6 +19,7 @@
     "blocks": [
       {
         "text": "for (int i=0;i<3;i++) {",
+        "code": "for i in range(3):",
         "type": "",
         "tag": "one",
         "depends": "",
@@ -27,6 +29,7 @@
       },
       {
         "text": "System.out.print(\"I \");",
+        "code": "print('I ', end='')",
         "type": "",
         "tag": "two",
         "depends": "one",
@@ -36,6 +39,7 @@
       },
       {
         "text": "System.out.print(\"am \");",
+        "code": "print('am ', end='')",
         "type": "",
         "tag": "three",
         "depends": "two",
@@ -45,6 +49,7 @@
       },
       {
         "text": "System.out.print(\"a Java program \");",
+        "code": "print('a Java program ', end='')",
         "type": "",
         "tag": "four",
         "depends": "three",
@@ -54,6 +59,7 @@
       },
       {
         "text": "}",
+        "code": "}",
         "type": "",
         "tag": "five",
         "depends": "four",

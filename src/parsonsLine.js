@@ -231,6 +231,7 @@ export default class ParsonsLine {
         cloned.fixed = this.fixed;
         cloned.groupWithNext = this.groupWithNext;
         cloned.isCloneLine = true;
+        cloned.code = this.code;
         return cloned;
     }
 }
