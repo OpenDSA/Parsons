@@ -17,21 +17,21 @@
     },
     "blocks": [
       {
-        "text": "Random Group 1 Block 1\n  This block is the first block after the \"Fixed Start\" block.\n",
+        "text": "Random Group 1 Block 1\n  This block is the first block after the “Fixed Start” block.",
         "type": "",
         "tag": "randomg1b1",
         "depends": "",
         "indent": true,
-        "displaymath": false,
+        "displaymath": true,
         "feedback": ""
       },
       {
-        "text": "Random Group 1 Block 2\n  This block is the second block after the \"Fixed Start\" block.\n",
+        "text": "Random Group 1 Block 2\n  This block is the second block after the “Fixed Start” block.",
         "type": "",
         "tag": "randomg1b2",
         "depends": "randomg1b1",
         "indent": true,
-        "displaymath": false,
+        "displaymath": true,
         "feedback": ""
       },
       {
@@ -40,7 +40,7 @@
         "tag": "randomg1b3",
         "depends": "randomg1b2",
         "indent": true,
-        "displaymath": false,
+        "displaymath": true,
         "feedback": ""
       },
       {
@@ -49,34 +49,34 @@
         "tag": "fixed",
         "depends": "",
         "indent": true,
-        "displaymath": false,
+        "displaymath": true,
         "feedback": ""
       },
       {
-        "text": "Random Group 2 Block 1\n  This block is the first block after the \"Fixed Middle\" block.\n",
+        "text": "Random Group 2 Block 1\n  This block is the first block after the “Fixed Middle” block.",
         "type": "",
         "tag": "randomg2b1",
         "depends": "randomg1b3",
         "indent": true,
-        "displaymath": false,
+        "displaymath": true,
         "feedback": ""
       },
       {
-        "text": "Random Group 2 Block 2\n  This block is the second block\nthat comes after the \"Fixed Start\" block.\n",
+        "text": "Random Group 2 Block 2\n  This block is the second block\nthat comes after the “Fixed Start” block.",
         "type": "",
         "tag": "randomg2b2",
         "depends": "randomg2b1",
         "indent": true,
-        "displaymath": false,
+        "displaymath": true,
         "feedback": ""
       },
       {
-        "text": "Random Group 2 Block 3\nThis is the final adjustable block.\n",
+        "text": "Random Group 2 Block 3\nThis is the final adjustable block.",
         "type": "",
         "tag": "randomg2b3",
         "depends": "randomg2b2",
         "indent": true,
-        "displaymath": false,
+        "displaymath": true,
         "feedback": ""
       },
       {
@@ -91,7 +91,7 @@
         "tag": "fixed",
         "depends": "",
         "indent": "",
-        "displaymath": false,
+        "displaymath": true,
         "feedback": ""
       },
       {
@@ -106,7 +106,7 @@
         "tag": "fixed",
         "depends": "",
         "indent": "",
-        "displaymath": false,
+        "displaymath": true,
         "feedback": ""
       }
     ]

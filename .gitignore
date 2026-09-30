@@ -13,7 +13,7 @@ modules.csv
 *.bak
 
 # For MAC users
-*.DS_Store
+.DS_Store
 
 uploads
 downloads
