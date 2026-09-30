@@ -677,7 +677,7 @@ export default class Parsons extends RunestoneBase {
         // outerHeight will return bad results if MathJax has not rendered the math
         areaWidth = 300;
         let self = this;
-        maxFunction = async function (item) {
+        maxFunction = async function (item, block) {
             if (
                 this.options.language == "natural" ||
                 this.options.language == "math"
@@ -703,10 +703,17 @@ export default class Parsons extends RunestoneBase {
             if (outerH != 38) {
                 addition = (3.1 * (outerH - 38)) / 21;
             }
-            areaHeight += outerH + height_add * addition;
+            let heightContribution = outerH + height_add * addition;
+            areaHeight += heightContribution;
+            // Cached so resizeAreasForBlockCount() can grow/shrink the
+            // regions later (e.g. when a reusable block is duplicated into
+            // the answer area) without re-measuring or re-typesetting.
+            if (block) {
+                block.heightContribution = heightContribution;
+            }
         }.bind(this);
         for (i = 0; i < blocks.length; i++) {
-            await maxFunction($(blocks[i].view));
+            await maxFunction($(blocks[i].view), blocks[i]);
         }
         // Apply the final, true max width to every block only after it has
         // been determined across ALL blocks. Blocks are shuffled into a new
@@ -792,6 +799,12 @@ export default class Parsons extends RunestoneBase {
         // cause the blocks to spill out.  This
         // corrects that by adding a little extra
         this.areaHeight = areaHeight + 40;
+        // Floor for resizeAreasForBlockCount(): this accommodates exactly one
+        // instance of every block, which is all a non-reusable exercise ever
+        // needs. Reusable blocks can be duplicated into the answer area
+        // beyond this, and the regions grow past it dynamically; this floor
+        // is what they shrink back down to, never below it.
+        this.minAreaHeight = areaHeight;
         $(this.sourceArea).css({
             width: this.areaWidth + 2,
             height: areaHeight,
@@ -878,6 +891,30 @@ export default class Parsons extends RunestoneBase {
         if (isHidden) {
             $(replaceElement).replaceWith(this.outerDiv);
         }
+    }
+
+    // Re-fits the source/answer region heights to the current block count.
+    // Only reusable blocks can change that count after initializeAreas() has
+    // run (a clone is pushed into this.blocks when dropped in the answer
+    // area, and removed again if dragged back to the source area - see
+    // ParsonsBlock.panEnd()); every other exercise keeps exactly the blocks
+    // initializeAreas() measured, so this is a no-op for them since the sum
+    // never exceeds minAreaHeight. Both regions always resize together, and
+    // never shrink below minAreaHeight (the height that fits one instance of
+    // every block, computed once in initializeAreas()).
+    resizeAreasForBlockCount() {
+        if (this.minAreaHeight === undefined) {
+            return; // initializeAreas() hasn't run yet
+        }
+        var dynamicHeight = 20; // same base term as initializeAreas()'s areaHeight
+        for (var i = 0; i < this.blocks.length; i++) {
+            dynamicHeight += this.blocks[i].heightContribution || 0;
+        }
+        dynamicHeight += (this.pairedBins ? this.pairedBins.length : 0) * 10;
+        var newHeight = Math.max(this.minAreaHeight, dynamicHeight);
+        this.areaHeight = newHeight;
+        $(this.sourceArea).css("height", newHeight);
+        $(this.answerArea).css("height", newHeight);
     }
 
     // Make blocks interactive (both drag-and-drop and keyboard)
