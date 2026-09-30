@@ -21,3 +21,7 @@ peml
 
 server.log
 .env
+
+.claude/
+CLAUDE.md
+CLAUDE.local.md
