@@ -104,6 +104,7 @@ Only the options relevant to embedding the widget as a library are listed here; 
 | `orig` | `Element` | — | Container the widget renders into. |
 | `pifJson` | `object` | — | The PIF problem definition (`{ value: {...} }`). |
 | `divid` | `string` | auto-generated | Unique id for this instance; used to key any hash/state you persist. |
+| `useRunestoneServices` | `boolean` | — | Gates Runestone-ecosystem server-sync behavior inherited from `RunestoneBase` (grading persisted server-side, course/user-scoped captions, …). Always pass `false` when embedding as a plain library — there is no Runestone server backing a PIF-mode instance. |
 | `initialState` | `object \| null` | `null` | Previously saved state to restore **synchronously**, with no fetch. See [State: `initialState` / `onStateChange`](#state-initialstate--onstatechange). |
 | `onStateChange` | `(state) => void` | — | Fires after every check/evaluation and every reset with the current state, so you can persist it however you like. |
 | `showFeedback` | `boolean` | `true` | Master switch for whether Parsons renders its own feedback UI at all (message box **and** block highlighting). `false` only suppresses *display* — `onFeedback` still fires. See note on precedence below. |
@@ -113,6 +114,10 @@ Only the options relevant to embedding the widget as a library are listed here; 
 | `onDebugFeedback` | `(info) => void` | — | Fires whenever such a problem is reported, regardless of `debugFeedback`. These are always logged via `console.warn` as well. |
 | `onCheck` | `() => void` | — | Fires the instant **Check Me** is clicked, before any grading happens. |
 | `onReset` | `() => void` | — | Fires the instant **Reset** is clicked, before the problem is actually reset. |
+| `onHelp` | `() => void` | — | Fires the instant **Help Me** is clicked, before `helpMe()` runs. Only relevant when `pifJson.value.options.adaptive` is true — otherwise no Help button exists. |
+| `onExecute` | `(extraction) => void` | — | Hand-off for exec-graded/reusable-block exercises: called with `{ id, code, language }` once the student's current arrangement passes the structural pre-flight check (see [Execution grading](#execution-grading-onexecute--executionavailable--indentationsensitivelanguages) below). Parsons never executes or grades code itself — this is the only way extracted code reaches you. |
+| `executionAvailable` | `boolean` | — | Explicit signal that your host has **no** execution backend at all. Only exactly `false` makes the Check button log a console error when `onExecute` isn't provided; any other value (including omitting it) is treated as "not wired up yet," not "never will be," and just debug-logs the extracted code instead. |
+| `indentationSensitiveLanguages` | `string[] \| ((language) => boolean)` | `["python", "ruby"]` | Languages that skip the structural indentation half of the pre-flight check, since their own interpreter already reports bad indentation once the code runs (bracket balance is still checked for them). Pass an array to replace the default list, or a function for custom per-language logic. |
 
 ### State: `initialState` / `onStateChange`
 
@@ -195,12 +200,42 @@ new Parsons({
 });
 ```
 
+### Execution grading: `onExecute` / `executionAvailable` / `indentationSensitiveLanguages`
+
+Parsons never executes or grades code itself — for exercises where `pifJson.value.options.grader.type === "exec"`, or any exercise using reusable blocks, clicking **Check Me** instead flattens the student's current arrangement into source text and hands it to your host via `onExecute`. What your host does with that (send it to a sandboxed runner, a grading service, whatever) is entirely up to you.
+
+Before that hand-off happens, Parsons runs a structural pre-flight check — nothing is extracted at all until it passes:
+
+1. **Bracket balance** (`(){}[]`, skipping over string/char literals and `//`/`/* */` comments) — always checked, regardless of language.
+2. **Indentation**, but only for languages *not* in `indentationSensitiveLanguages` (default `["python", "ruby"]`, and only when the problem's PIF actually allows indenting at all): does each line's indentation agree with its own brace-nesting depth? This is a structural/linting check, not a comparison against the solution's authored indent — Python/Ruby skip it because their own interpreter already reports bad indentation once the code actually runs; Java/JavaScript/etc. get no such feedback from a compiler, so Parsons catches it first.
+
+If either check fails, Parsons paints its own feedback (`grade: "incorrectSyntax"`) through the exact same `showFeedback`/`showFeedbackText`/`onFeedback` plumbing described above — `onExecute` is never called for that attempt. If both pass, `extractCode()` runs and `onExecute` receives `{ id, code, language }`, where `code` reflects wherever the student actually dragged each block (not the PIF's authored indent — dragging a block to a different indent always changes what gets extracted).
+
+```js
+new Parsons({
+    orig, divid, pifJson,
+    onExecute(extraction) {
+        // extraction = { id: string, code: string, language: string }
+        myRunner.execute(extraction.code, extraction.language)
+            .then(result => myUI.showExecutionResult(result));
+    },
+    // Optional: be explicit that this host has no execution backend at
+    // all yet, so Check logs a clear console.error instead of silently
+    // debug-logging the extracted code.
+    executionAvailable: false,
+    // Optional: only needed to change which languages skip the
+    // structural indentation half of the check above.
+    indentationSensitiveLanguages: ["python", "ruby"],
+});
+```
+
 ### Full example
 
 ```js
 new Parsons({
     orig: document.getElementById("my-problem"),
     divid: "my-problem",
+    useRunestoneServices: false, // always false when embedding as a plain library
     pifJson: myPifJson,
     initialState: myBackend.getSavedState("my-problem"), // or null
     onStateChange: (state) => myBackend.saveProgress("my-problem", state),
@@ -211,5 +246,6 @@ new Parsons({
     onCheck: () => analytics.track("parsons_check_clicked"),
     onReset: () => analytics.track("parsons_reset_clicked"),
     onHelp: () => analytics.track("parsons_help_clicked"),
+    onExecute: (extraction) => myRunner.execute(extraction.code, extraction.language),
 });
 ```

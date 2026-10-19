@@ -31,6 +31,7 @@ import LineBasedGrader from "./lineGrader.js";
 import DAGGrader from "./dagGrader.js";
 import ParsonsLine from "./parsonsLine.js";
 import ParsonsBlock from "./parsonsBlock.js";
+import { findBracketMismatch, findIndentationMismatch } from "./execPreflight.js";
 
 // This only fills the gap when nothing set it up, so property don't throw
 // ReferenceErrors.
@@ -95,6 +96,32 @@ export default class Parsons extends RunestoneBase {
         // Button Hooks for onClick
         this.onCheck = typeof opts.onCheck === "function" ? opts.onCheck : undefined;
         this.onReset = typeof opts.onReset === "function" ? opts.onReset : undefined;
+        this.onHelp = typeof opts.onHelp === "function" ? opts.onHelp : undefined;
+
+        // Hand-off for exec-graded exercises: once extracted code passes
+        // the structural pre-flight (see checkExecPreflight()), it's
+        // passed to this hook instead of the embedding host having to
+        // poll or re-extract it itself. No execution/grading happens in
+        // this library - the host owns that entirely.
+        this.onExecute = typeof opts.onExecute === "function" ? opts.onExecute : undefined;
+
+        // Explicit signal from the host that it has NO execution backend
+        // wired up at all (as opposed to just not having passed
+        // onExecute yet, e.g. mid-integration). Only this - opts.executionAvailable
+        // passed as exactly `false` - makes the Check button log the
+        // "not implemented" error below; omitting it (or any other
+        // value) does not.
+        this.executionAvailable = opts.executionAvailable;
+
+        // Languages whose own compiler/interpreter already reports bad
+        // indentation once the code runs, so checkExecPreflight()'s
+        // structural indentation check is skipped for them (bracket
+        // balance is still checked). Pass an array to replace the
+        // default list, or a function(language) for custom logic.
+        this.indentationSensitiveLanguages =
+            opts.indentationSensitiveLanguages !== undefined
+                ? opts.indentationSensitiveLanguages
+                : ["python", "ruby"];
 
         var storageId = super.localStorageKey();
         this.storageId = storageId;
@@ -442,17 +469,36 @@ export default class Parsons extends RunestoneBase {
             }
 
             if (that.options.grader === "exec" || that.hasReusable) {
-                //TODO: Implement executable grading and uncomment the line below
-                var extractedCode = that.extractCode();
-                console.log("EXTRACTED CODE =\n" + JSON.stringify(extractedCode, null, 2));
+                if (!that.isIndentationSensitiveLanguage()) {
+                    var preflightFeedback = that.checkExecPreflight();
+                    if (preflightFeedback) {
+                        that.checkCount++;
+                        that.clearFeedback();
+                        if (that.onFeedback) {
+                            that.onFeedback(preflightFeedback);
+                        }
+                        that.paintFeedback(preflightFeedback);
+                        return;
+                    }
+                }
 
-                const errorMessage = "Executable grading not yet implemented.";
-                $('body').append(`
-                    <div style="padding: 20px; margin: 20px; border: 1px solid #dc3545; border-radius: 5px; background-color: #f8d7da; color: #721c24;">
-                        <p>${errorMessage}</p>
-                    </div>
-                `);
-                throw new Error("Executable grading not yet implemented.");
+                // Only extracted once the pre-flight (if applicable) has
+                // passed - nothing gets built for hand-off until the
+                // arrangement is structurally sound.
+                var extractedCode = that.extractCode();
+                if (that.onExecute) {
+                    that.onExecute(extractedCode);
+                } else if (that.executionAvailable === false) {
+                    // The host explicitly said it has no execution
+                    // backend - this is the only case this library
+                    // treats as an error, since otherwise it has no way
+                    // to tell "not wired up yet" apart from "never will
+                    // be."
+                    console.error("Execution grading not yet implemented.");
+                } else {
+                    console.log("EXTRACTED CODE =\n" + JSON.stringify(extractedCode, null, 2));
+                }
+                return;
             }
             that.checkCurrentAnswer();
             that.logCurrentAnswer();
@@ -517,12 +563,27 @@ export default class Parsons extends RunestoneBase {
         }
     }
 
-    // Extracts code for execute grading
-    extractCode() { 
-        let code = ""; 
-        for (const block of this.answerBlocks()) { 
-            for (const line of block.lines) { 
-                for (let i = 0; i < line.indent; i++) {
+    // Flattens the answer area's current arrangement into source text -
+    // one physical line per ParsonsLine, indentation as literal
+    // 4-space-per-level, pifData.wrapper NOT applied (callers decide
+    // whether/when to apply it). Shared by extractCode() and
+    // checkExecPreflight() so the two can never see different text for
+    // the same arrangement.
+    //
+    // Uses line.viewIndent() (the block's CURRENT dragged-to position),
+    // not the raw line.indent authored in the PIF - the two only agree
+    // when a block happens to sit at its originally-authored indent.
+    // viewIndent() is the same thing lineGrader.js/dagGrader.js already
+    // compare against the solution's indent for order/dag grading; exec
+    // extraction needs the same "where the student actually put it"
+    // value, not the static JSON one, since otherwise dragging a block
+    // to a different indent would silently have no effect on the code
+    // that actually gets executed.
+    buildAnswerCode() {
+        let code = "";
+        for (const block of this.answerBlocks()) {
+            for (const line of block.lines) {
+                for (let i = 0; i < line.viewIndent(); i++) {
                     code += "    ";
                 }
 
@@ -534,7 +595,13 @@ export default class Parsons extends RunestoneBase {
                 lineCode = lineCode.replace(/<button\b[^>]*>(.*?)<\/button>/g, '$1');
                 code += lineCode + "\n";
             }
-        } 
+        }
+        return code;
+    }
+
+    // Extracts code for execute grading
+    extractCode() {
+        let code = this.buildAnswerCode();
         let wrapper = this.pifData?.wrapper
         if (wrapper) {
             code = wrapper.replace("___", code);
@@ -545,6 +612,92 @@ export default class Parsons extends RunestoneBase {
         extraction.code = code;
         extraction.language = this.options.language;
         return extraction;
+    }
+
+    // See the indentationSensitiveLanguages constructor option.
+    isIndentationSensitiveLanguage() {
+        var list = this.indentationSensitiveLanguages;
+        if (typeof list === "function") {
+            return Boolean(list(this.options.language));
+        }
+        return list.includes(this.options.language);
+    }
+
+    // Runs BEFORE extractCode() for execution grading (see the Check
+    // button handler) - nothing is extracted/handed off until this
+    // passes - for languages where the interpreter itself wouldn't catch
+    // a structural problem (see isIndentationSensitiveLanguage()). An
+    // execution grader downstream has no good way to turn a parse
+    // failure or a bad indent into feedback the student can act on, so
+    // this catches both first: bracket balance (a prerequisite -
+    // indentation can't be judged against code that doesn't even
+    // parse), then brace-depth-consistent indentation. Returns a
+    // feedback object in the same shape buildFeedback() produces,
+    // describing the first problem found, or null if the arrangement
+    // looks structurally sound.
+    checkExecPreflight() {
+        var bracketError = findBracketMismatch(this.buildAnswerCode());
+        if (bracketError) {
+            return {
+                grade: "incorrectSyntax",
+                correct: false,
+                checkCount: this.checkCount,
+                message: $.i18n("msg_parson_unbalanced_brackets", bracketError),
+                blocks: { indentLeft: [], indentRight: [], incorrectPosition: [] },
+                distractorFeedback: [],
+            };
+        }
+
+        // If the problem doesn't let the student indent at all (noindent,
+        // indent.active false, or max_indents 0 - the specific *mode*,
+        // prescribed vs free, doesn't matter here), every block's indent
+        // is pinned to 0 regardless of brace depth. Checking indentation
+        // against that would just flag every nested line as "needs more
+        // indent" with no way for the student to act on it, so skip it.
+        if (!this.usesIndentation()) {
+            return null;
+        }
+
+        var entries = [];
+        for (const block of this.answerBlocks()) {
+            for (const line of block.lines) {
+                entries.push({
+                    text: line.code !== undefined ? line.code : line.text,
+                    indent: line.viewIndent(),
+                    block: block,
+                });
+            }
+        }
+        var mismatch = findIndentationMismatch(entries);
+        if (mismatch) {
+            var seen = [];
+            var indentLeft = [];
+            var indentRight = [];
+            for (const block of mismatch.tooDeep) {
+                if (seen.indexOf(block) === -1) {
+                    seen.push(block);
+                    indentLeft.push(block.view.id);
+                }
+            }
+            for (const block of mismatch.tooShallow) {
+                if (seen.indexOf(block) === -1) {
+                    seen.push(block);
+                    indentRight.push(block.view.id);
+                }
+            }
+            return {
+                grade: "incorrectSyntax",
+                correct: false,
+                checkCount: this.checkCount,
+                message: seen.length === 1
+                    ? $.i18n("msg_parson_wrong_indent")
+                    : $.i18n("msg_parson_wrong_indents"),
+                blocks: { indentLeft: indentLeft, indentRight: indentRight, incorrectPosition: [] },
+                distractorFeedback: [],
+            };
+        }
+
+        return null;
     }
 
     // Based on the blocks, create the source and answer areas
@@ -912,6 +1065,20 @@ export default class Parsons extends RunestoneBase {
         }
         dynamicHeight += (this.pairedBins ? this.pairedBins.length : 0) * 10;
         var newHeight = Math.max(this.minAreaHeight, dynamicHeight);
+        this.areaHeight = newHeight;
+        $(this.sourceArea).css("height", newHeight);
+        $(this.answerArea).css("height", newHeight);
+    }
+
+    resizeAreasForDropZones(sourceContentHeight, answerContentHeight) {
+        if (this.minAreaHeight === undefined) {
+            return; // initializeAreas() hasn't run yet
+        }
+        var contentHeight = Math.max(
+            sourceContentHeight || 0,
+            answerContentHeight || 0
+        );
+        var newHeight = Math.max(this.minAreaHeight, contentHeight + 20);
         this.areaHeight = newHeight;
         $(this.sourceArea).css("height", newHeight);
         $(this.answerArea).css("height", newHeight);
@@ -1934,7 +2101,7 @@ export default class Parsons extends RunestoneBase {
     //
     // Shape:
     //   {
-    //     grade: "correct" | "incorrectTooShort" | "incorrectIndent" | "incorrectMoveBlocks",
+    //     grade: "correct" | "incorrectTooShort" | "incorrectIndent" | "incorrectMoveBlocks" | "incorrectSyntax",
     //     correct: boolean,
     //     checkCount: number,
     //     message: string,               // same text the built-in UI shows
@@ -2079,6 +2246,26 @@ export default class Parsons extends RunestoneBase {
                 feedbackHtml += "</ul>";
                 paintMessage("alert alert-danger", 500, feedbackHtml);
                 return;
+            }
+            paintMessage("alert alert-danger", 500, feedback.message);
+            return;
+        }
+
+        // Produced by checkExecPreflight() - a bracket-balance or
+        // structural-indentation problem found before exec-graded code
+        // was handed off for execution. Reuses the same indentLeft/
+        // indentRight highlighting as "incorrectIndent" above since it's
+        // visually the same kind of feedback; bracket-balance problems
+        // have no specific block to highlight, just the message.
+        if (feedback.grade === "incorrectSyntax") {
+            answerArea.addClass("incorrect");
+            for (let i = 0; i < feedback.blocks.indentLeft.length; i++) {
+                var leftBlock = this.getBlockById(feedback.blocks.indentLeft[i]);
+                if (leftBlock) $(leftBlock.view).addClass("indentLeft");
+            }
+            for (let i = 0; i < feedback.blocks.indentRight.length; i++) {
+                var rightBlock = this.getBlockById(feedback.blocks.indentRight[i]);
+                if (rightBlock) $(rightBlock.view).addClass("indentRight");
             }
             paintMessage("alert alert-danger", 500, feedback.message);
         }
@@ -2884,6 +3071,7 @@ export default class Parsons extends RunestoneBase {
         }
         var positionTop, width;
         var baseWidth = this.areaWidth - 22;
+        var sourceContentHeight, answerContentHeight;
         // Update the Source Area
         if (updateSource) {
             positionTop = 0;
@@ -3112,6 +3300,7 @@ export default class Parsons extends RunestoneBase {
                     positionTop = positionTop + $(item.view).outerHeight(true);
                 }
             }
+            sourceContentHeight = positionTop;
             // Update the Paired Distractor Indicators
             for (i = 0; i < this.pairedBins.length; i++) {
                 var bin = this.pairedBins[i];
@@ -3399,6 +3588,7 @@ export default class Parsons extends RunestoneBase {
                     }
                 }
             }
+            answerContentHeight = positionTop;
             // Position drop zone backgrounds after all blocks are positioned
             this.updateDropZoneBackgrounds(blocks, width);
         }
@@ -3443,6 +3633,10 @@ export default class Parsons extends RunestoneBase {
                 width: baseWidth,
                 "z-index": 3,
             });
+        }
+
+        if (this.dropZones && this.dropZones.length > 0 && updateSource && updateAnswer) {
+            this.resizeAreasForDropZones(sourceContentHeight, answerContentHeight);
         }
         state = newState;
         this.state = state;

@@ -3,9 +3,6 @@ node_modules
 dist/
 .vscode
 
-#sample input files for testing. Not essential to ignore
-#test-inputs/
-
 #Temp files
 *~
 modules.json
@@ -21,7 +18,4 @@ peml
 
 server.log
 .env
-
-.claude/
-CLAUDE.md
-CLAUDE.local.md
+tests

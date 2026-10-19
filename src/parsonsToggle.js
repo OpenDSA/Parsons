@@ -6,14 +6,18 @@ export default class ParsonsToggle {
         this.line = line;
         this.id = "toggle" + ParsonsToggle.toggleCount;
         this.values = values;
-        this.currentIndex = 0;
+        // Starts on a random value, not always values[0] - otherwise
+        // every toggle in every rendering defaults to the same option,
+        // which a student can learn to exploit as a shortcut regardless
+        // of what's actually correct.
+        this.currentIndex = Math.floor(Math.random() * this.values.length);
 
         this.start_index = start_index;
         this.end_index = end_index;
 
         this.button = document.createElement('button');
         this.button.id = this.id;
-        this.button.textContent = this.values[0];
+        this.button.textContent = this.values[this.currentIndex];
 
     }
 

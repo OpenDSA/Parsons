@@ -276,6 +276,17 @@
     background-color: #ffbaba;
     border: 1px solid red;
 }
+/* Toggle buttons cycle through a fixed set of values; prettyPrint()
+   recurses into them and syntax-highlights their text like any other
+   code token, so different values can render in different colors
+   (e.g. an identifier in black vs an operator in another color)
+   depending on what the text happens to look like. That inconsistently
+   hints at which option is "different", so force one flat color
+   regardless of what prettify assigns the button's contents. */
+.parsons button,
+.parsons button * {
+    color: #000 !important;
+}
 .parsons .paired {
     position: absolute;
     -moz-border-radius: 10px;
