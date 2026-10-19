@@ -18,6 +18,8 @@ if (typeof $ !== 'undefined' && $.i18n) {
             "Estes blocos não estão indentados corretamente. Para indentar mais, arraste o bloco para a direita. Para reduzir a indentação, arraste para a esquerda.",
         msg_parson_wrong_order:
             "Blocos destacados no seu programa estão errados ou estão na ordem errada. Isso pode ser resolvido movendo, excluindo ou substituindo os blocos destacados.",
+        msg_parson_unbalanced_brackets:
+            "Seu código tem chaves/parênteses desbalanceados: $1",
         msg_parson_arrow_navigate:
             "Use as teclas de setas para navegar. Espaço para selecionar/ desmarcar blocos para mover.",
         msg_parson_help_info:

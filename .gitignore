@@ -1,9 +1,7 @@
 node_modules
 .idea/
 dist/
-
-#sample input files for testing. Not essential to ignore
-#test-inputs/
+.vscode
 
 #Temp files
 *~
@@ -12,7 +10,7 @@ modules.csv
 *.bak
 
 # For MAC users
-*.DS_Store
+.DS_Store
 
 uploads
 downloads
@@ -20,3 +18,4 @@ peml
 
 server.log
 .env
+tests

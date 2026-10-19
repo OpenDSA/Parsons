@@ -20,6 +20,8 @@ if (typeof $ !== 'undefined' && $.i18n) {
             "These blocks are not indented correctly. To indent a block more, drag it to the right. To reduce the indention, drag it to the left.",
         msg_parson_wrong_order:
             "Highlighted blocks in your answer are wrong or are in the wrong order. This can be fixed by moving, removing, or replacing highlighted blocks.",
+        msg_parson_unbalanced_brackets:
+            "Your code has unbalanced brackets: $1",
         msg_parson_arrow_navigate:
             "Arrow keys to navigate. Space to select / deselect block to move.",
         msg_parson_help_info:

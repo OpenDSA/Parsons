@@ -126,8 +126,7 @@ const parsonsPageTemplate = `
 <!DOCTYPE html>
 <html>
 <head>
-<link rel="stylesheet" type="text/css" href="/css/parsons.css"/>
-  <link rel="stylesheet" type="text/css" href="/css/index.css"/>
+   <link rel="stylesheet" type="text/css" href="/parsons/dist/parsons.css"/>
    <script type="text/javascript">
     if (typeof eBookConfig === "undefined") {
         eBookConfig = {};
@@ -225,9 +224,21 @@ const parsonsPageTemplate = `
         },
         "startup": {
             pageReady() {
-                return MathJax.startup.defaultPageReady().then(function () {
-                    rsMathReady();
-                }
+                // rsMathReady() must fire even if MathJax's own initial
+                // page-wide typeset pass throws on some content (e.g. an
+                // internal IndexSizeError). Without the catch, that failure
+                // permanently leaves window.rsMathReady uncalled and
+                // runestoneMathReady never resolves - which hangs every
+                // consumer (like Parsons' per-block layout measurement) that
+                // awaits it, forever, with no error of their own to catch.
+                return MathJax.startup.defaultPageReady().then(
+                    function () {
+                        rsMathReady();
+                    },
+                    function (err) {
+                        console.warn("MathJax's initial page-wide typeset pass failed; continuing anyway so dependent components aren't stuck waiting forever.", err);
+                        rsMathReady();
+                    }
                 )
             }
         }
